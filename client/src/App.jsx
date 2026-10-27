@@ -1,20 +1,26 @@
-import React, { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useEffect, useRef } from "react";
+import { useDispatch } from "react-redux";
 import AppRoutes from "./routes/Routes";
 import { fetchCurrentUser } from "./features/auth/authSlice";
+import ConfirmDialogProvider from "./components/common/ConfirmDialogProvider";
 
 function App() {
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const authCheckStarted = useRef(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token && !user) {
+    if (token && !authCheckStarted.current) {
+      authCheckStarted.current = true;
       dispatch(fetchCurrentUser());
     }
-  }, [dispatch, user]);
+  }, [dispatch]);
 
-  return <AppRoutes />;
+  return (
+    <ConfirmDialogProvider>
+      <AppRoutes />
+    </ConfirmDialogProvider>
+  );
 }
 
 export default App;

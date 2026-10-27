@@ -22,7 +22,6 @@ import {
 const CertificateView = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [selectedCertificate, setSelectedCertificate] = useState(null);
 
   // Mock certificate data
   const certificates = [

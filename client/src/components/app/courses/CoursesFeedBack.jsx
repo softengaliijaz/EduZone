@@ -17,13 +17,13 @@ const CoursesFeedBack = () => {
 
   const handlePrev = () => {
     setActiveTestimonial((prev) =>
-      prev === 0 ? testimonials.length - 1 : prev - 1,
+      prev === 0 ? coursesFeedBackTestimonialsData.length - 1 : prev - 1,
     );
   };
 
   const handleNext = () => {
     setActiveTestimonial((prev) =>
-      prev === testimonials.length - 1 ? 0 : prev + 1,
+      prev === coursesFeedBackTestimonialsData.length - 1 ? 0 : prev + 1,
     );
   };
 

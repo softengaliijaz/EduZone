@@ -1,353 +1,84 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useFetchData from "../../../hooks/useCustomHooks";
-import { BASE_URL } from "../../../utils/constants";
+import { BookOpen, GraduationCap, Search, Users, RotateCw, Eye } from "lucide-react";
+import axiosInstance from "../../../services/axios";
 import Loader from "../../../components/common/Loader";
-import ErrorBox from "../../../components/common/ErrorBox";
-import {
-  Search,
-  Filter,
-  User,
-  Mail,
-  GraduationCap,
-  Star,
-  TrendingUp,
-  BookOpen,
-  Eye,
-  MoreVertical,
-} from "lucide-react";
+import { getUploadUrl } from "../../../utils/constants";
 
 const InstructorsListPage = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedFilters, setSelectedFilters] = useState({
-    status: "all",
-    expertise: "all",
-  });
+  const [instructors, setInstructors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const instructorRole = "instructor";
-  const {
-    data: allUsers,
-    loading: loader,
-    error: error,
-    refetch: refetchInstructors,
-  } = useFetchData(`${BASE_URL}/api/users/role/${instructorRole}`, "GET");
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    axiosInstance.get("/api/admin/instructors")
+      .then(({ data }) => { if (active) setInstructors(data.data || []); })
+      .catch((requestError) => { if (active) setError(requestError.response?.data?.message || "Could not load instructor records."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [reloadKey]);
 
-  const instructors =
-    allUsers?.filter((user) => user.user_type === "instructor") || [];
+  const filteredInstructors = useMemo(() => instructors
+    .filter((instructor) => {
+      const query = search.trim().toLowerCase();
+      return !query || [instructor.name, instructor.email, instructor.bio]
+        .some((value) => value?.toLowerCase().includes(query));
+    })
+    .sort((a, b) => {
+      if (sortBy === "name") return (a.name || "").localeCompare(b.name || "");
+      if (sortBy === "courses") return (b.teaching?.courses || 0) - (a.teaching?.courses || 0);
+      if (sortBy === "learners") return (b.teaching?.learners || 0) - (a.teaching?.learners || 0);
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    }), [instructors, search, sortBy]);
 
-  // Filter and search instructors
-  const filteredInstructors = instructors.filter((instructor) => {
-    const matchesSearch =
-      instructor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      instructor.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      instructor.bio?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  if (loading) return <Loader title="Loading instructor records…" />;
 
-  const getAvatar = (instructor) =>
-    instructor.profile_picture_url ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(instructor.name || "Instructor")}&background=10B981&color=fff&size=128`;
-
-  if (loader) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader title="Loading instructors..." />
-      </div>
-    );
-  }
-
-  if (error) {
-    return <ErrorBox message={error} onRetry={refetchInstructors} />;
-  }
-
-  if (!instructors?.length) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <ErrorBox message="No instructors found." />
-      </div>
-    );
-  }
-
-  // Mock expertise areas
-  const expertiseAreas = [
-    "Web Dev",
-    "Data Science",
-    "Design",
-    "Business",
-    "AI/ML",
-  ];
+  const courseTotal = instructors.reduce((total, instructor) => total + (instructor.teaching?.courses || 0), 0);
+  const learnerTotal = instructors.reduce((total, instructor) => total + (instructor.teaching?.learners || 0), 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 rounded-full text-sm font-semibold mb-3">
-                <GraduationCap className="w-4 h-4" />
-                INSTRUCTOR MANAGEMENT
-              </div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                Instructor Directory
-              </h1>
-              <p className="text-gray-600">
-                Manage and collaborate with expert instructors on your platform
-              </p>
-            </div>
-            <button className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all">
-              <User className="w-5 h-5" />
-              Add New Instructor
-            </button>
-          </div>
+    <section className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div><p className="mb-2 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[var(--brand-strong)]"><GraduationCap size={16} /> Admin · People</p><h1 className="text-3xl font-bold text-[var(--text)]">Instructors</h1><p className="mt-2 text-[var(--text-muted)]">Review instructor accounts, their courses, and course enrollment totals.</p></div>
+        <div className="flex flex-wrap gap-3"><div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"><span className="block text-xs text-[var(--text-muted)]">Instructors</span><strong className="text-xl text-[var(--text)]">{instructors.length}</strong></div><div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"><span className="block text-xs text-[var(--text-muted)]">Courses · enrollments</span><strong className="text-xl text-[var(--text)]">{courseTotal} · {learnerTotal}</strong></div></div>
+      </header>
 
-          {/* Search and Filter Bar */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search instructors by name, email, or expertise..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <select
-                  value={selectedFilters.status}
-                  onChange={(e) =>
-                    setSelectedFilters((prev) => ({
-                      ...prev,
-                      status: e.target.value,
-                    }))
-                  }
-                  className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="featured">Featured</option>
-                  <option value="pending">Pending</option>
-                </select>
-
-                <select
-                  value={selectedFilters.expertise}
-                  onChange={(e) =>
-                    setSelectedFilters((prev) => ({
-                      ...prev,
-                      expertise: e.target.value,
-                    }))
-                  }
-                  className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="all">All Expertise</option>
-                  {expertiseAreas.map((area) => (
-                    <option key={area} value={area.toLowerCase()}>
-                      {area}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  <span>{filteredInstructors.length} instructors found</span>
-                </div>
-                <div className="flex items-center gap-2 text-green-600">
-                  <TrendingUp className="w-4 h-4" />
-                  <span>Total: {instructors.length}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Instructors Grid/List */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          {/* Table Header - Desktop */}
-          <div className="hidden lg:grid grid-cols-12 gap-4 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
-            <div className="col-span-3 font-semibold text-gray-900">
-              Instructor Profile
-            </div>
-            <div className="col-span-2 font-semibold text-gray-900">
-              Expertise
-            </div>
-            <div className="col-span-2 font-semibold text-gray-900">
-              Performance
-            </div>
-            <div className="col-span-2 font-semibold text-gray-900">
-              Courses
-            </div>
-            <div className="col-span-3 font-semibold text-gray-900 text-right">
-              Actions
-            </div>
-          </div>
-
-          {/* Instructors List */}
-          <div className="divide-y divide-gray-100">
-            {filteredInstructors.map((instructor) => (
-              <div
-                key={instructor._id}
-                className="group hover:bg-gray-50 transition-colors"
-              >
-                {/* Desktop View */}
-                <div className="hidden lg:grid grid-cols-12 gap-4 p-6 items-center">
-                  {/* Profile */}
-                  <div className="col-span-3">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <img
-                          src={getAvatar(instructor)}
-                          alt={instructor.name}
-                          className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow"
-                        />
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white"></div>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          {instructor.name}
-                        </h3>
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
-                          <GraduationCap className="w-4 h-4" />
-                          Certified Instructor
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Expertise */}
-                  <div className="col-span-2">
-                    <div className="flex flex-wrap gap-1">
-                      <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                        Web Dev
-                      </span>
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                        React
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Performance */}
-                  <div className="col-span-2">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="font-semibold">4.8</span>
-                      </div>
-                      <div className="text-sm text-gray-600">(128 reviews)</div>
-                    </div>
-                  </div>
-
-                  {/* Courses */}
-                  <div className="col-span-2">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="w-5 h-5 text-blue-600" />
-                      <span className="font-semibold">5</span>
-                      <span className="text-sm text-gray-600">courses</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="col-span-3 flex justify-end gap-2">
-                    <button
-                      onClick={() =>
-                        navigate(`/admin/instructors/${instructor._id}`)
-                      }
-                      className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View Profile
-                    </button>
-                    <button className="p-2 rounded-lg hover:bg-gray-200 transition-colors">
-                      <MoreVertical className="w-5 h-5 text-gray-500" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Mobile View */}
-                <div className="lg:hidden p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <img
-                          src={getAvatar(instructor)}
-                          alt={instructor.name}
-                          className="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow"
-                        />
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 text-lg">
-                          {instructor.name}
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                          <Mail className="w-4 h-4" />
-                          <span className="truncate">{instructor.email}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span className="font-semibold">4.8</span>
-                    </div>
-                  </div>
-
-                  {instructor.bio && (
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                      {instructor.bio}
-                    </p>
-                  )}
-
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                      Web Development
-                    </span>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                      Frontend
-                    </span>
-                    <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                      React
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="text-center p-3 bg-gray-50 rounded-xl">
-                      <div className="text-xl font-bold text-gray-900">5</div>
-                      <div className="text-xs text-gray-600">Courses</div>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-xl">
-                      <div className="text-xl font-bold text-gray-900">
-                        1.2k
-                      </div>
-                      <div className="text-xs text-gray-600">Students</div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() =>
-                        navigate(`/admin/instructors/${instructor._id}`)
-                      }
-                      className="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View Profile
-                    </button>
-                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
-                      <Mail className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="mb-5 grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[minmax(16rem,1fr)_12rem]">
+        <label className="relative block"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} /><input aria-label="Search instructors" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, email, or bio" className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2.5 pl-10 pr-3 text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
+        <select aria-label="Sort instructors" value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[var(--text)]"><option value="newest">Recently joined</option><option value="name">Name A–Z</option><option value="courses">Most courses</option><option value="learners">Most enrollments</option></select>
       </div>
-    </div>
+
+      {error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-800" role="alert"><p>{error}</p><button onClick={() => { setError(""); setReloadKey((key) => key + 1); }} className="mt-3 inline-flex items-center gap-2 font-medium"><RotateCw size={16} /> Retry</button></div>
+      ) : filteredInstructors.length === 0 ? (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-6 py-16 text-center"><GraduationCap className="mx-auto mb-3 text-[var(--text-muted)]" size={30} /><h2 className="text-lg font-semibold text-[var(--text)]">{instructors.length ? "No matching instructors" : "No instructors yet"}</h2><p className="mt-1 text-[var(--text-muted)]">{instructors.length ? "Try a different search." : "Instructor accounts will appear here when an admin assigns the instructor role."}</p></div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+          <div className="hidden grid-cols-[minmax(16rem,1.5fr)_minmax(12rem,1fr)_9rem_9rem_10rem] gap-4 border-b border-[var(--border)] bg-[var(--surface-raised)] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] md:grid"><span>Instructor</span><span>Profile</span><span>Courses</span><span>Enrollments</span><span className="text-right">Actions</span></div>
+          {filteredInstructors.map((instructor) => {
+            const avatarUrl = instructor.profile_picture_url
+              ? instructor.profile_picture_url.startsWith("http")
+                ? instructor.profile_picture_url
+                : getUploadUrl(instructor.profile_picture_url)
+              : null;
+            return (
+            <article key={instructor._id} className="grid gap-4 border-b border-[var(--border)] p-4 last:border-0 md:grid-cols-[minmax(16rem,1.5fr)_minmax(12rem,1fr)_9rem_9rem_10rem] md:items-center md:px-5">
+              <div className="flex min-w-0 items-center gap-3"><span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-soft)] font-semibold text-[var(--brand-strong)]">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : instructor.name?.charAt(0)?.toUpperCase() || "I"}</span><div className="min-w-0"><h2 className="truncate font-semibold text-[var(--text)]">{instructor.name}</h2><p className="truncate text-sm text-[var(--text-muted)]">{instructor.email}</p></div></div>
+              <p className="line-clamp-2 text-sm text-[var(--text-muted)]">{instructor.bio || "No instructor bio provided."}</p>
+              <p className="inline-flex items-center gap-2 text-sm text-[var(--text)]"><BookOpen size={16} className="text-[var(--brand-strong)]" />{instructor.teaching?.courses || 0}</p>
+              <p className="inline-flex items-center gap-2 text-sm text-[var(--text)]"><Users size={16} className="text-[var(--brand-strong)]" />{instructor.teaching?.learners || 0}</p>
+              <div className="flex justify-end"><button onClick={() => navigate(`/admin/instructors/${instructor._id}`)} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--surface-raised)]"><Eye size={16} /> View courses</button></div>
+            </article>
+          ); })}
+        </div>
+      )}
+    </section>
   );
 };
 

@@ -5,8 +5,8 @@
       "destination": "https://eduzone-jscm.onrender.com/api/$1"
     },
     {
-      "source": "/",
-      "destination": "/login"
+      "source": "/uploads/(.*)",
+      "destination": "https://eduzone-jscm.onrender.com/uploads/$1"
     },
     {
       "source": "/(.*)",

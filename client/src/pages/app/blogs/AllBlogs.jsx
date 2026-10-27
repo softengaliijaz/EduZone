@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { getUploadUrl } from "../../../utils/constants";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlogs } from "../../../features/admin/blogSlice";
 import { useNavigate } from "react-router-dom";
-import { AppFooter } from "../../../components/layout/Footer";
 import {
   Search,
   Filter,
@@ -302,7 +302,7 @@ const ReadAllBlogs = () => {
                   {blog.image ? (
                     <>
                       <img
-                        src={`${import.meta.env.VITE_BASE_URL}/uploads/${blog.image}`}
+                        src={getUploadUrl(blog.image)}
                         alt={blog.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       />
@@ -498,7 +498,6 @@ const ReadAllBlogs = () => {
           </div>
         </div>
       </div>
-      <AppFooter />
     </>
   );
 };

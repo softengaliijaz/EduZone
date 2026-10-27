@@ -13,14 +13,15 @@ import {
   FileText,
   Calendar,
   Clock,
-  X,
-  Check,
   Hash,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import useConfirmDialog from "../../../components/common/useConfirmDialog";
+import { getUploadUrl } from "../../../utils/constants";
 
 const DeleteBlogPage = () => {
   const dispatch = useDispatch();
+  const confirm = useConfirmDialog();
   const {
     blogs = [],
     loading: courseLoading,
@@ -29,8 +30,6 @@ const DeleteBlogPage = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
-  const [selectedBlog, setSelectedBlog] = useState(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     dispatch(fetchBlogs());
@@ -52,26 +51,23 @@ const DeleteBlogPage = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleDeleteClick = (blog) => {
-    setSelectedBlog(blog);
-    setShowConfirmModal(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (selectedBlog) {
-      try {
-        await dispatch(deleteBlog(selectedBlog._id)).unwrap();
-        toast.success(`"${selectedBlog.title}" deleted successfully!`);
-        setShowConfirmModal(false);
-        setSelectedBlog(null);
-      } catch (err) {
-        toast.error("Failed to delete blog");
-      }
+  const handleDeleteClick = async (blog) => {
+    const confirmed = await confirm({
+      title: "Delete article?",
+      message: `“${blog.title}” will be permanently removed and no longer available to readers.`,
+      confirmLabel: "Delete article",
+    });
+    if (!confirmed) return;
+    try {
+      await dispatch(deleteBlog(blog._id)).unwrap();
+      toast.success(`“${blog.title}” deleted successfully.`);
+    } catch (error) {
+      toast.error(typeof error === "string" ? error : "Failed to delete article.");
     }
   };
 
   const getImageUrl = (blog) =>
-    `${import.meta.env.VITE_BASE_URL}/uploads/${blog.image}`;
+    getUploadUrl(blog.image);
 
   // Calculate reading time
   const calculateReadingTime = (content) => {
@@ -92,90 +88,6 @@ const DeleteBlogPage = () => {
 
   return (
     <>
-      {/* Confirmation Modal */}
-      {showConfirmModal && selectedBlog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-in slide-in-from-bottom-2">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Delete Blog
-              </h3>
-              <p className="text-gray-600">
-                Are you sure you want to delete this blog? This action cannot be
-                undone.
-              </p>
-            </div>
-
-            {/* Blog Info */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-              <div className="flex items-center gap-3 mb-3">
-                {selectedBlog.image ? (
-                  <img
-                    src={getImageUrl(selectedBlog)}
-                    alt={selectedBlog.title}
-                    className="w-12 h-12 rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-gray-400" />
-                  </div>
-                )}
-                <div>
-                  <h4 className="font-semibold text-gray-900">
-                    {selectedBlog.title}
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    {selectedBlog.category || "Uncategorized"}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-2 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>
-                    Published:{" "}
-                    {new Date(
-                      selectedBlog.publish_date || Date.now(),
-                    ).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span>
-                    Reading time: {calculateReadingTime(selectedBlog.content)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  setSelectedBlog(null);
-                }}
-                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete Blog
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         {/* Header */}

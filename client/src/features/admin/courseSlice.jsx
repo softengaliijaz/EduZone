@@ -24,6 +24,34 @@ export const fetchCourses = createAsyncThunk(
   },
 );
 
+export const fetchAllCourses = createAsyncThunk(
+  "course/fetchAllCourses",
+  async (_, thunkAPI) => {
+    try {
+      const pageSize = 100;
+      const firstPage = await axiosInstance.get("/api/courses/", {
+        params: { page: 1, limit: pageSize },
+      });
+      const courses = firstPage.data.data || [];
+      const totalPages = firstPage.data.meta?.totalPages || 1;
+      if (totalPages <= 1) return courses;
+
+      const remainingPages = await Promise.all(
+        Array.from({ length: totalPages - 1 }, (_, index) =>
+          axiosInstance.get("/api/courses/", {
+            params: { page: index + 2, limit: pageSize },
+          }),
+        ),
+      );
+      return courses.concat(...remainingPages.map((page) => page.data.data || []));
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to fetch all courses",
+      );
+    }
+  },
+);
+
 export const createCourse = createAsyncThunk(
   "course/createCourse",
   async (courseData, thunkAPI) => {
@@ -31,14 +59,13 @@ export const createCourse = createAsyncThunk(
       const response = await axiosInstance.post(
         "/api/courses/create-course",
         courseData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
       );
       return response.data.data;
     } catch (error) {
       return thunkAPI.rejectWithValue(
-        error?.response?.data?.message || "Failed to create course",
+        error?.response?.data?.errors?.join(" ") ||
+          error?.response?.data?.message ||
+          "Failed to create course",
       );
     }
   },
@@ -51,9 +78,6 @@ export const updateCourse = createAsyncThunk(
       const response = await axiosInstance.put(
         `/api/courses/${id}`,
         courseData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
       );
       return response.data.data;
     } catch (error) {
@@ -101,9 +125,23 @@ const courseSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      .addCase(fetchAllCourses.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllCourses.fulfilled, (state, action) => {
+        state.loading = false;
+        state.courses = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchAllCourses.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
       .addCase(createCourse.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(createCourse.fulfilled, (state, action) => {
         state.loading = false;

@@ -1,9 +1,6 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  createCourse,
-  fetchCourses,
-} from "../../../features/admin/courseSlice";
+import { createCourse } from "../../../features/admin/courseSlice";
 import { useNavigate } from "react-router-dom";
 import {
   Upload,
@@ -91,33 +88,28 @@ const CreateCoursePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!title || !description || !duration || !category) {
+    if (!title.trim() || !description.trim() || !duration.trim() || !category.trim()) {
       toast.error("Please fill all required fields");
       return;
     }
 
     const formData = new FormData();
-    formData.append("title", title);
-    formData.append("description", description);
-    formData.append("duration", duration);
+    formData.append("title", title.trim());
+    formData.append("description", description.trim());
+    formData.append("duration", duration.trim());
     formData.append("level", level);
-    formData.append("category", category);
+    formData.append("category", category.trim());
     if (image) formData.append("image", image);
-    formData.append("courseCreatedBy", user?._id);
 
     try {
-      const result = await dispatch(createCourse(formData)).unwrap();
+      await dispatch(createCourse(formData)).unwrap();
 
       toast.success("🎉 Course created successfully!");
-      dispatch(fetchCourses());
-
-      setTimeout(() => {
-        navigate(
-          user?.user_type === "admin"
-            ? "/admin/courses-management/get-all-courses"
-            : "/instructor/courses",
-        );
-      }, 1500);
+      navigate(
+        user?.user_type === "admin"
+          ? "/admin/courses-management/get-all-courses"
+          : "/instructor/courses-management/get-all-courses",
+      );
     } catch (err) {
       toast.error(err || "Failed to create course");
     }
@@ -139,35 +131,6 @@ const CreateCoursePage = () => {
           </div>
         </div>
 
-        {/* Progress Steps */}
-        <div className="flex items-center justify-between mb-8">
-          {["Course Details", "Curriculum", "Pricing", "Publish"].map(
-            (step, index) => (
-              <div key={step} className="flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-                ${index === 0 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
-                >
-                  {index === 0 ? (
-                    <CheckCircle className="w-4 h-4" />
-                  ) : (
-                    index + 1
-                  )}
-                </div>
-                <span
-                  className={`ml-2 text-sm ${index === 0 ? "text-blue-600 font-medium" : "text-gray-500"}`}
-                >
-                  {step}
-                </span>
-                {index < 3 && (
-                  <div
-                    className={`w-16 h-0.5 mx-4 ${index === 0 ? "bg-blue-600" : "bg-gray-200"}`}
-                  />
-                )}
-              </div>
-            ),
-          )}
-        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8">
@@ -301,6 +264,7 @@ const CreateCoursePage = () => {
               placeholder="Describe what students will learn, prerequisites, and key takeaways..."
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
+            <p className="text-xs text-gray-500 mt-2">Separate paragraphs with a blank line; formatting is preserved on the course page.</p>
             <div className="flex justify-between mt-2">
               <p className="text-xs text-gray-500">
                 Minimum 100 characters recommended

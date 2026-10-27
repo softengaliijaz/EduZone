@@ -17,6 +17,7 @@ import {
   Eye,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { getUploadUrl } from "../../../utils/constants";
 
 const UpdateCoursePage = () => {
   const { id } = useParams();
@@ -87,11 +88,7 @@ const UpdateCoursePage = () => {
           category: course.category || "",
         });
 
-        const imageUrl =
-          course.imageUrl ||
-          (course.image
-            ? `${import.meta.env.VITE_BASE_URL}/uploads/${course.image}`
-            : null);
+        const imageUrl = course.imageUrl || getUploadUrl(course.image);
 
         if (imageUrl) {
           setPreview(imageUrl);
@@ -183,7 +180,7 @@ const UpdateCoursePage = () => {
     if (image) data.append("image", image);
 
     try {
-      const result = await dispatch(
+      await dispatch(
         updateCourse({ id, courseData: data }),
       ).unwrap();
       toast.success("✅ Course updated successfully!");
@@ -383,6 +380,7 @@ const UpdateCoursePage = () => {
               placeholder="Describe what students will learn, prerequisites, and key takeaways..."
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
+            <p className="text-xs text-gray-500 mt-2">Separate paragraphs with a blank line; formatting is preserved on the course page.</p>
             <div className="flex justify-between mt-2">
               <p className="text-xs text-gray-500">
                 Detailed descriptions help students understand the course value

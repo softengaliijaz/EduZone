@@ -13,16 +13,18 @@ import {
   Filter,
   FileText,
   Calendar,
-  User,
   Clock,
   Hash,
   TrendingUp,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import useConfirmDialog from "../../../components/common/useConfirmDialog";
+import { getUploadUrl } from "../../../utils/constants";
 
 const BlogListPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const confirm = useConfirmDialog();
 
   const { blogs, loading, error } = useSelector((state) => state.blogs);
 
@@ -35,14 +37,18 @@ const BlogListPage = () => {
   }, [dispatch]);
 
   const handleDelete = async (id, title) => {
-    if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
-      try {
-        await dispatch(deleteBlog(id)).unwrap();
-        toast.success("Blog deleted successfully!");
-        dispatch(fetchBlogs());
-      } catch (err) {
-        toast.error("Failed to delete blog");
-      }
+    const confirmed = await confirm({
+      title: "Delete article?",
+      message: `“${title}” will be permanently removed and will no longer be publicly available.`,
+      confirmLabel: "Delete article",
+    });
+    if (!confirmed) return;
+    try {
+      await dispatch(deleteBlog(id)).unwrap();
+      toast.success("Blog deleted successfully!");
+      dispatch(fetchBlogs());
+    } catch (error) {
+      toast.error(typeof error === "string" ? error : "Failed to delete blog");
     }
   };
 
@@ -55,7 +61,7 @@ const BlogListPage = () => {
   };
 
   const getImageUrl = (blog) =>
-    `${import.meta.env.VITE_BASE_URL}/uploads/${blog.image}`;
+    getUploadUrl(blog.image);
 
   // Get unique categories
   const categories = [
@@ -105,7 +111,7 @@ const BlogListPage = () => {
               My Blogs
             </h1>
             <p className="text-gray-600">
-              Manage and edit your published articles
+              Manage your articles and keep your learning community informed
             </p>
           </div>
           <button
@@ -118,7 +124,7 @@ const BlogListPage = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <div className="bg-white p-4 rounded-xl shadow border border-gray-100">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -142,30 +148,6 @@ const BlogListPage = () => {
                 <p className="text-xl font-bold text-gray-900">
                   {categories.length - 1}
                 </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow border border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                <User className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Published</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {blogs?.filter((b) => b.status === "published").length || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow border border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Monthly Views</p>
-                <p className="text-xl font-bold text-gray-900">1.2K</p>
               </div>
             </div>
           </div>
@@ -220,7 +202,7 @@ const BlogListPage = () => {
 
       {/* Blogs List */}
       {filteredBlogs?.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="flex min-h-[36vh] flex-col items-center justify-center py-12 text-center">
           <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
             <FileText className="w-10 h-10 text-gray-400" />
           </div>
@@ -230,15 +212,8 @@ const BlogListPage = () => {
           <p className="text-gray-600 mb-6">
             {searchTerm || filterCategory !== "all"
               ? "Try adjusting your search or filters"
-              : "You haven't published any blogs yet"}
+              : "You haven't published any articles yet. Use New Blog above to get started."}
           </p>
-          <button
-            onClick={() => navigate("/admin/blog/create-blog")}
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium"
-          >
-            <Plus className="w-5 h-5" />
-            Create Your First Blog
-          </button>
         </div>
       ) : (
         <>
@@ -346,9 +321,6 @@ const BlogListPage = () => {
                       Reading Time
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -413,17 +385,6 @@ const BlogListPage = () => {
                           <Clock className="w-4 h-4 text-gray-400" />
                           {calculateReadingTime(blog.content)}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            blog.status === "published"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {blog.status || "draft"}
-                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">

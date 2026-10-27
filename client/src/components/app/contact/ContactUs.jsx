@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
-import { AppFooter } from "../../../components/layout/Footer";
 import { useDispatch, useSelector } from "react-redux";
-import { contactUs } from "../../../features/contact-us/contactUsSlice";
+import {
+  contactUs,
+} from "../../../features/contact-us/contactUsSlice";
 import {
   Send,
   Mail,
@@ -15,7 +15,6 @@ import { contactUsScreenData } from "../../../utils/AppUtils";
 
 const ContactUs = () => {
   const dispatch = useDispatch();
-  const location = useLocation();
   const [formData, setFormData] = useState({
     fullname: "",
     email: "",
@@ -23,7 +22,7 @@ const ContactUs = () => {
     message: "",
   });
 
-  const { loading, error, data } = useSelector((state) => state.contactUs);
+  const { loading, error, message } = useSelector((state) => state.contactUs);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -33,7 +32,7 @@ const ContactUs = () => {
     }));
   };
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
 
     if (
@@ -42,17 +41,15 @@ const ContactUs = () => {
       !formData.subject ||
       !formData.message
     ) {
-      console.error("All fields are required");
       return;
     }
 
-    dispatch(contactUs(formData));
-    setFormData({
-      fullname: "",
-      email: "",
-      subject: "",
-      message: "",
-    });
+    try {
+      await dispatch(contactUs(formData)).unwrap();
+      setFormData({ fullname: "", email: "", subject: "", message: "" });
+    } catch {
+      // Keep the entered values so the visitor can correct or retry.
+    }
   };
 
   return (
@@ -243,7 +240,7 @@ const ContactUs = () => {
                         </div>
                       )}
 
-                      {data && (
+                      {message && (
                         <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-xl">
                           <CheckCircle className="w-5 h-5" />
                           <span>
@@ -324,9 +321,6 @@ const ContactUs = () => {
         </div>
       </section>
 
-      {location.pathname !== "/" && location.pathname !== "/home" && (
-        <AppFooter />
-      )}
     </>
   );
 };

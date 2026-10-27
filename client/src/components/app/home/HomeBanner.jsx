@@ -1,8 +1,11 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { getWorkspaceHome } from "../../../utils/roleNavigation";
 
 const HomeBanner = () => {
   const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
 
   return (
     <section className="relative min-h-screen bg-gradient-to-br from-gray-900 via-[#1C1E53] to-purple-900 text-white overflow-hidden">
@@ -104,7 +107,7 @@ const HomeBanner = () => {
                 </button>
 
                 <button
-                  onClick={() => navigate("/user/learning-room")}
+                  onClick={() => navigate(user ? getWorkspaceHome(user.user_type) : "/login")}
                   className="group bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold py-4 px-8 rounded-xl hover:bg-white/20 hover:border-white/40 transition-all duration-300"
                 >
                   <span className="flex items-center justify-center gap-2">

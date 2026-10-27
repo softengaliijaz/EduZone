@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { getUploadUrl } from "../../../utils/constants";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getBlogById,
   incrementViewCount,
 } from "../../../features/admin/blogSlice";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { AppFooter } from "../../../components/layout/Footer";
 import {
   Calendar,
   Clock,
@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 import axiosInstance from "../../../services/axios";
+import { getReadableParagraphs } from "../../../utils/contentFormatting";
 
 const BlogsDetails = () => {
   const dispatch = useDispatch();
@@ -62,34 +63,38 @@ const BlogsDetails = () => {
 
   // Priority: 1. selectedBlog (from Redux) 2. blogFromState (navigation) 3. null
   const blogData = selectedBlog || blogFromState;
+  const blogId = blogData?._id;
+  const blogCategory = blogData?.category;
+  const blogTags = blogData?.tags;
+  const hasBlogData = Boolean(selectedBlog || blogFromState);
 
   useEffect(() => {
     // Only fetch if we don't have the blog data already
-    if (id && !selectedBlog && !blogFromState) {
+    if (id && !hasBlogData) {
       dispatch(getBlogById(id));
     }
 
     const fetchRelatedBlogs = async () => {
-      if (!blogData?._id) return;
+      if (!blogId) return;
       try {
         const response = await axiosInstance.get("/api/blogs");
         const allBlogs = response?.data?.data || [];
 
         const related = allBlogs
-          .filter((blog) => blog._id !== blogData._id)
+          .filter((blog) => blog._id !== blogId)
           .filter((blog) => {
             const sameCategory =
-              blogData.category && blog.category === blogData.category;
+              blogCategory && blog.category === blogCategory;
             const hasCommonTag =
-              Array.isArray(blogData.tags) &&
+              Array.isArray(blogTags) &&
               Array.isArray(blog.tags) &&
-              blog.tags.some((tag) => blogData.tags.includes(tag));
+              blog.tags.some((tag) => blogTags.includes(tag));
             return sameCategory || hasCommonTag;
           })
           .slice(0, 3);
 
         setRelatedBlogs(related);
-      } catch (_error) {
+      } catch {
         setRelatedBlogs([]);
       }
     };
@@ -97,8 +102,8 @@ const BlogsDetails = () => {
     fetchRelatedBlogs();
 
     // Increment view count (you need to implement this in your slice)
-    if (blogData && blogData._id) {
-      dispatch(incrementViewCount(blogData._id));
+    if (blogId) {
+      dispatch(incrementViewCount(blogId));
     }
 
     // Setup reading progress tracker
@@ -112,7 +117,7 @@ const BlogsDetails = () => {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [dispatch, id, selectedBlog, blogFromState, blogData?._id]);
+  }, [dispatch, id, hasBlogData, blogId, blogCategory, blogTags]);
 
   const handleShare = async (platform = null) => {
     if (!blogData) return;
@@ -130,7 +135,7 @@ const BlogsDetails = () => {
         toast.success("Link copied to clipboard!");
         setTimeout(() => setIsCopied(false), 2000);
         setShareMenuOpen(false);
-      } catch (err) {
+      } catch {
         toast.error("Could not copy link");
       }
       return;
@@ -403,7 +408,7 @@ const BlogsDetails = () => {
             {blogData.image ? (
               <>
                 <img
-                  src={`${import.meta.env.VITE_BASE_URL}/uploads/${blogData.image}`}
+                  src={getUploadUrl(blogData.image)}
                   alt={blogData.title}
                   className="w-full h-[400px] md:h-[500px] object-cover group-hover:scale-105 transition-transform duration-700"
                 />
@@ -418,8 +423,12 @@ const BlogsDetails = () => {
 
           {/* Article Content */}
           <article className="prose prose-lg max-w-none mb-16">
-            <div className="text-xl leading-relaxed text-gray-700 whitespace-pre-line">
-              {blogData.content}
+            <div className="mx-auto max-w-[75ch] text-lg md:text-xl leading-8 text-gray-700 break-words">
+              {getReadableParagraphs(blogData.content).map((paragraph, index) => (
+                <p className="mb-7 last:mb-0 whitespace-pre-wrap" key={`blog-content-${index}`}>
+                  {paragraph}
+                </p>
+              ))}
             </div>
           </article>
 
@@ -582,7 +591,7 @@ const BlogsDetails = () => {
                     <div className="h-40 overflow-hidden">
                       {blog.image ? (
                         <img
-                          src={`${import.meta.env.VITE_BASE_URL}/uploads/${blog.image}`}
+                          src={getUploadUrl(blog.image)}
                           alt={blog.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />
@@ -644,7 +653,6 @@ const BlogsDetails = () => {
           </div>
         </div>
       </div>
-      <AppFooter />
     </>
   );
 };

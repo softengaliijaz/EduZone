@@ -3,7 +3,11 @@ import { useSelector } from "react-redux";
 import { Outlet, Navigate } from "react-router-dom";
 
 const RoleProtectedRouteWrapper = ({ allowedRoles }) => {
-  const { user } = useSelector((state) => state.auth);
+  const { user, isInitializing } = useSelector((state) => state.auth);
+
+  if (isInitializing) {
+    return <div className="route-loading" role="status">Loading your workspace…</div>;
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;

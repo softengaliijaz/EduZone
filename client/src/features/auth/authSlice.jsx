@@ -1,6 +1,16 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "../../services/axios";
 
+const readStoredUser = () => {
+  try {
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
+  } catch {
+    localStorage.removeItem("user");
+    return null;
+  }
+};
+
 const normalizeAuthPayload = (responseData) => {
   const root = responseData?.data || responseData || {};
   const user = root.user || responseData?.user || responseData?.data?.user || null;
@@ -73,21 +83,25 @@ export const fetchCurrentUser = createAsyncThunk(
 );
 
 export const logoutUser = createAsyncThunk("auth/logoutUser", async () => {
+  let serverLogoutSucceeded = true;
   try {
     await axiosInstance.post("/api/auth/logout");
-  } catch (_error) {
-    // No-op, always clear local session.
+  } catch (error) {
+    serverLogoutSucceeded = false;
+    console.error("Server logout failed:", error);
   }
   localStorage.removeItem("token");
   localStorage.removeItem("user");
+  return { serverLogoutSucceeded };
 });
 
 const authSlice = createSlice({
   name: "auth",
   initialState: {
-    user: JSON.parse(localStorage.getItem("user")) || null,
+    user: localStorage.getItem("token") ? readStoredUser() : null,
     loading: false,
     error: null,
+    isInitializing: Boolean(localStorage.getItem("token")),
   },
   reducers: {
     logout: (state) => {
@@ -96,10 +110,15 @@ const authSlice = createSlice({
       state.user = null;
       state.error = null;
       state.loading = false;
+      state.isInitializing = false;
     },
   },
   extraReducers: (builder) => {
     builder
+      .addCase("user/setUser", (state, action) => {
+        state.user = action.payload;
+        localStorage.setItem("user", JSON.stringify(action.payload));
+      })
       .addCase(register.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -127,14 +146,17 @@ const authSlice = createSlice({
       .addCase(fetchCurrentUser.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.isInitializing = true;
       })
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user || null;
+        state.isInitializing = false;
       })
       .addCase(fetchCurrentUser.rejected, (state) => {
         state.loading = false;
         state.user = null;
+        state.isInitializing = false;
         localStorage.removeItem("token");
         localStorage.removeItem("user");
       })
@@ -142,6 +164,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = null;
         state.error = null;
+        state.isInitializing = false;
       });
   },
 });

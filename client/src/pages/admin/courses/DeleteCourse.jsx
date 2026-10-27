@@ -16,13 +16,14 @@ import {
   BookOpen,
   Clock,
   Users,
-  X,
-  Check,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import useConfirmDialog from "../../../components/common/useConfirmDialog";
+import { getUploadUrl } from "../../../utils/constants";
 
 const DeleteCoursePage = () => {
   const dispatch = useDispatch();
+  const confirm = useConfirmDialog();
 
   const {
     courses = [],
@@ -32,8 +33,6 @@ const DeleteCoursePage = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     dispatch(fetchCourses());
@@ -55,27 +54,24 @@ const DeleteCoursePage = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleDeleteClick = (course) => {
-    setSelectedCourse(course);
-    setShowConfirmModal(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (selectedCourse) {
-      try {
-        await dispatch(deleteCourse({ id: selectedCourse._id })).unwrap();
-        toast.success(`"${selectedCourse.title}" deleted successfully!`);
-        setShowConfirmModal(false);
-        setSelectedCourse(null);
-      } catch (err) {
-        toast.error("Failed to delete course");
-      }
+  const handleDeleteClick = async (course) => {
+    const confirmed = await confirm({
+      title: "Delete course?",
+      message: `“${course.title}” will be permanently removed. Existing enrollment records are not automatically deleted.`,
+      confirmLabel: "Delete course",
+    });
+    if (!confirmed) return;
+    try {
+      await dispatch(deleteCourse({ id: course._id })).unwrap();
+      toast.success(`“${course.title}” deleted successfully.`);
+    } catch (error) {
+      toast.error(typeof error === "string" ? error : "Failed to delete course.");
     }
   };
 
   const getImageUrl = (course) =>
     course.imageUrl ||
-    `${import.meta.env.VITE_BASE_URL}/uploads/${course.image}`;
+    getUploadUrl(course.image);
 
   if (courseLoader) {
     return <Loader title="Loading courses..." />;
@@ -87,81 +83,6 @@ const DeleteCoursePage = () => {
 
   return (
     <>
-      {/* Confirmation Modal */}
-      {showConfirmModal && selectedCourse && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-in slide-in-from-bottom-2">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Delete Course
-              </h3>
-              <p className="text-gray-600">
-                Are you sure you want to delete this course? This action cannot
-                be undone.
-              </p>
-            </div>
-
-            {/* Course Info */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-              <div className="flex items-center gap-3 mb-3">
-                {selectedCourse.image ? (
-                  <img
-                    src={getImageUrl(selectedCourse)}
-                    alt={selectedCourse.title}
-                    className="w-12 h-12 rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
-                    <BookOpen className="w-6 h-6 text-gray-400" />
-                  </div>
-                )}
-                <div>
-                  <h4 className="font-semibold text-gray-900">
-                    {selectedCourse.title}
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    {selectedCourse.category}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-2 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span>
-                    Duration: {selectedCourse.duration || "Not specified"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span>Level: {selectedCourse.level || "Not specified"}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  setSelectedCourse(null);
-                }}
-                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete Course
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         {/* Header */}

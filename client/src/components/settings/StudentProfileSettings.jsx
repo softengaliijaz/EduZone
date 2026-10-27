@@ -6,10 +6,12 @@ import {
   setUser,
 } from "../../features/auth/userApiSlice";
 import Sidebar from "../../components/settings/shared/Sidebar";
+import { toast } from "react-hot-toast";
 
 const StudentProfileSettings = () => {
   const dispatch = useDispatch();
   const { user, status, error } = useSelector((state) => state.auth);
+  const userId = user?._id;
 
   const [activeTab, setActiveTab] = useState("profile");
   const [formData, setFormData] = useState({ name: "", email: "", bio: "" });
@@ -17,10 +19,10 @@ const StudentProfileSettings = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (user && user._id) {
-      dispatch(getUserProfile(user._id));
+    if (userId) {
+      dispatch(getUserProfile(userId));
     }
-  }, [dispatch, user?._id]);
+  }, [dispatch, userId]);
 
   useEffect(() => {
     if (user) {
@@ -44,10 +46,10 @@ const StudentProfileSettings = () => {
       .then((updatedUser) => {
         dispatch(setUser(updatedUser));
         setIsEditing(false);
-        alert("Profile updated!");
+        toast.success("Profile updated successfully.");
       })
       .catch((err) => {
-        alert("Update failed: " + err);
+        toast.error(`Profile update failed: ${err}`);
       })
       .finally(() => setSaving(false));
   };

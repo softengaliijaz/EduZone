@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Search, Filter } from "lucide-react";
 import debounce from "lodash.debounce";
 
-export const SearchComp = ({ onSearch, onFilter }) => {
+export const SearchComp = ({ onSearch, onFilter, categories = [], resetSignal = 0 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("all");
   const [level, setLevel] = useState("all");
@@ -14,6 +14,14 @@ export const SearchComp = ({ onSearch, onFilter }) => {
       }, 500),
     [onSearch],
   );
+
+  React.useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
+  React.useEffect(() => {
+    debouncedSearch.cancel();
+    setSearchTerm("");
+    setCategory("all");
+    setLevel("all");
+  }, [debouncedSearch, resetSignal]);
 
   const handleSearchChange = (e) => {
     const term = e.target.value;
@@ -57,11 +65,7 @@ export const SearchComp = ({ onSearch, onFilter }) => {
             className="pl-10 pr-8 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1C1E53]/20 bg-white text-sm"
           >
             <option value="all">All Categories</option>
-            <option value="Web Development">Web Development</option>
-            <option value="Mobile Development">Mobile Development</option>
-            <option value="Data Science">Data Science</option>
-            <option value="Design">Design</option>
-            <option value="Marketing">Marketing</option>
+            {categories.map((value) => <option value={value} key={value}>{value}</option>)}
           </select>
         </div>
 

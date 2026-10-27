@@ -1,323 +1,300 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import toast from "react-hot-toast";
 import {
-  Menu,
-  X,
-  Home,
-  GraduationCap,
-  Users,
-  Award,
-  BookOpen,
   ChevronDown,
-  Settings,
-  HelpCircle,
   LogOut,
-  Sparkles,
-  MessageSquare,
-  BookOpenCheck,
+  Menu,
+  Moon,
+  Settings,
+  Sun,
+  X,
 } from "lucide-react";
 import { logoutUser } from "../../features/auth/authSlice";
+import useConfirmDialog from "../common/useConfirmDialog";
+import { useTheme } from "../../contexts/ThemeContext";
+import {
+  getSettingsPath,
+  getWorkspaceHome,
+  getWorkspaceLabel,
+} from "../../utils/roleNavigation";
 
-const HeaderNav = () => {
+const publicLinks = [
+  ["/home", "Home"],
+  ["/courses/courses-list", "Courses"],
+  ["/view-all-blogs", "Articles"],
+  ["/see-all-benefits", "Why EduZone"],
+  ["/about", "About"],
+];
+
+const HeaderNav = ({ workspace = false, onMenuToggle, menuOpen = false }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-
   const { user } = useSelector((state) => state.auth);
-
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const confirm = useConfirmDialog();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [publicMenuOpen, setPublicMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-
-  const isAdmin = user?.user_type === "admin";
-  const isInstructor = user?.user_type === "instructor";
-  const isStudent = user?.user_type === "student";
-  const userInitial = user?.name?.charAt(0) || "U";
-
-  /* ------------------ Effects ------------------ */
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  const authPage = ["/login", "/signup"].includes(location.pathname);
+  const initial = user?.name?.trim()?.charAt(0)?.toUpperCase() || "U";
+  const workspaceHome = getWorkspaceHome(user?.user_type);
+  const workspaceLabel = getWorkspaceLabel(user?.user_type);
+  const settingsPath = getSettingsPath(user?.user_type);
 
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? "hidden" : "auto";
-    return () => (document.body.style.overflow = "auto");
-  }, [menuOpen]);
+    setDropdownOpen(false);
+    setPublicMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
-    const close = (e) => {
-      if (!e.target.closest(".dropdown")) {
+    const closeMenus = (event) => {
+      if (event.type === "keydown" && event.key === "Escape") {
+        setDropdownOpen(false);
+        setPublicMenuOpen(false);
+        return;
+      }
+      if (event.type === "pointerdown" && !event.target.closest(".user-menu")) {
         setDropdownOpen(false);
       }
+      if (
+        event.type === "pointerdown" &&
+        !event.target.closest(".public-mobile-menu, .mobile-public-toggle")
+      ) {
+        setPublicMenuOpen(false);
+      }
     };
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
+
+    document.addEventListener("pointerdown", closeMenus);
+    document.addEventListener("keydown", closeMenus);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenus);
+      document.removeEventListener("keydown", closeMenus);
+    };
   }, []);
 
-  /* ------------------ Logout ------------------ */
+  if (location.pathname === "/login" || location.pathname === "/signup") {
+    return null;
+  }
+
   const handleLogout = async () => {
+    const confirmed = await confirm({
+      title: "Sign out of EduZone?",
+      message: "You will need to sign in again to return to your learning workspace.",
+      confirmLabel: "Sign out",
+      tone: "neutral",
+    });
+    if (!confirmed) return;
     setLoggingOut(true);
-    await dispatch(logoutUser());
-    navigate("/login", { replace: true });
+    try {
+      const { serverLogoutSucceeded } = await dispatch(logoutUser()).unwrap();
+      if (!serverLogoutSucceeded) {
+        toast.error(
+          "You were signed out on this device, but the server could not invalidate your session.",
+        );
+      }
+      navigate("/login", { replace: true });
+    } finally {
+      setLoggingOut(false);
+      setDropdownOpen(false);
+    }
   };
 
-  /* ------------------ Nav Links ------------------ */
-  const navLinks = isAdmin
-    ? [
-        { to: "/admin/dashboard-page", label: "Dashboard", icon: Home },
-        {
-          to: "/admin/courses-management/get-all-courses",
-          label: "Courses",
-          icon: BookOpenCheck,
-        },
-        { to: "/admin/get-all-students", label: "Students", icon: Users },
-        {
-          to: "/admin/get-all-instructors",
-          label: "Instructors",
-          icon: GraduationCap,
-        },
-        { to: "/admin/blog/get-all-blogs", label: "Blogs", icon: Award },
-      ]
-    : isInstructor
-      ? [
-          {
-            to: "/instructor/instructor-dashboard-page",
-            label: "Dashboard",
-            icon: Home,
-          },
-          {
-            to: "/instructor/courses-management/get-all-courses",
-            label: "Courses",
-            icon: BookOpen,
-          },
-          {
-            to: "/instructor/courses-management/create-course",
-            label: "Create",
-            icon: Users,
-          },
-          { to: "/instructor/settings", label: "Settings", icon: Award },
-        ]
-      : [
-          { to: "/home", label: "Home", icon: Home },
-          { to: "/courses/courses-list", label: "Courses", icon: BookOpen },
-          { to: "/user/learning-room", label: "Learning", icon: GraduationCap },
-          { to: "/user/certificates", label: "Certificates", icon: Award },
-          { to: "/user/community", label: "Community", icon: Users },
-          {
-            to: "/about",
-            label: "About",
-            icon: Sparkles,
-          },
-          {
-            to: "/contact",
-            label: "Contact",
-            icon: MessageSquare,
-          },
-        ];
-
-  /* ================== RENDER ================== */
   return (
-    <header
-      className={`sticky top-0 z-50 h-16 md:h-20 transition-all ${
-        scrolled
-          ? "bg-white/95 backdrop-blur border-b shadow-sm"
-          : "bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900"
-      }`}
-    >
-      <div className="max-w-7xl mx-auto h-full px-4 flex items-center justify-between">
-        {/* Logo */}
-        <Link
-          to={
-            isAdmin
-              ? "/admin/dashboard-page"
-              : isInstructor
-                ? "/instructor/instructor-dashboard-page"
-                : "/home"
-          }
-          className="flex items-center gap-3"
-        >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold">
-            EZ
-          </div>
-          <span
-            className={`font-bold text-lg ${scrolled ? "text-gray-900" : "text-white"}`}
+    <header className="topbar">
+      <div className="flex min-w-0 items-center gap-3">
+        {workspace && (
+          <button
+            type="button"
+            className="icon-button mobile-nav-toggle"
+            onClick={onMenuToggle}
+            aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={menuOpen}
+            aria-controls="workspace-navigation"
           >
-            EDU-ZONE
+            {menuOpen ? <X size={19} /> : <Menu size={19} />}
+          </button>
+        )}
+        <Link
+          className="topbar__brand"
+          to={user ? workspaceHome : "/home"}
+          aria-label={user ? `${workspaceLabel} — EduZone` : "EduZone home"}
+        >
+          <span className="topbar__mark" aria-hidden="true">
+            EZ
           </span>
+          <span className="topbar__brand-label">EduZone</span>
         </Link>
+      </div>
 
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-1">
-          {navLinks.map(({ to, label, icon: Icon }) => (
+      {!workspace && !authPage && (
+        <nav className="topbar__links" aria-label="Main navigation">
+          {user && (
+            <Link
+              className="topbar__link topbar__link--workspace"
+              to={workspaceHome}
+              aria-current={
+                location.pathname === workspaceHome ? "page" : undefined
+              }
+            >
+              {workspaceLabel}
+            </Link>
+          )}
+          {publicLinks.map(([to, label]) => (
             <Link
               key={to}
+              className="topbar__link"
               to={to}
-              className={`px-4 py-2 rounded-xl flex items-center gap-2 transition ${
-                location.pathname === to
-                  ? scrolled
-                    ? "bg-blue-50 text-blue-600"
-                    : "bg-white/10 text-white"
-                  : scrolled
-                    ? "text-gray-700 hover:bg-gray-100"
-                    : "text-white/80 hover:bg-white/10"
-              }`}
+              aria-current={location.pathname === to ? "page" : undefined}
             >
-              <Icon className="w-4 h-4" />
               {label}
             </Link>
           ))}
         </nav>
+      )}
 
-        {/* Desktop Actions */}
-        <div className="hidden md:flex items-center gap-2">
-          {/* User Dropdown */}
-          <div className="relative dropdown bg-white/80 backdrop-blur-md rounded-xl">
+      <div className="topbar__actions">
+        {!workspace && !authPage && (
+          <button
+            type="button"
+            className="icon-button mobile-public-toggle"
+            onClick={() => setPublicMenuOpen((open) => !open)}
+            aria-label={publicMenuOpen ? "Close main menu" : "Open main menu"}
+            aria-expanded={publicMenuOpen}
+          >
+            {publicMenuOpen ? <X size={19} /> : <Menu size={19} />}
+          </button>
+        )}
+        <button
+          type="button"
+          className="icon-button"
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+          title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+        >
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+        {user ? (
+          <div className="user-menu">
             <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100"
+              type="button"
+              className="user-menu__trigger"
+              onClick={() => setDropdownOpen((open) => !open)}
+              aria-expanded={dropdownOpen}
+              aria-haspopup="menu"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center font-bold">
-                {userInitial}
-              </div>
-              <ChevronDown className="w-4 h-4" />
+              <span className="user-menu__avatar" aria-hidden="true">
+                {initial}
+              </span>
+              <span className="hidden max-w-32 truncate text-sm font-medium sm:inline">
+                {user.name || "Account"}
+              </span>
+              <ChevronDown size={15} aria-hidden="true" />
             </button>
-
             {dropdownOpen && (
-              <div
-                className="
-      absolute right-0 mt-2 w-60
-      rounded-xl border border-gray-200
-      bg-white shadow-lg
-      overflow-hidden
-      z-50
-      animate-in fade-in zoom-in-95
-    "
-              >
-                {/* Settings */}
+              <div className="user-menu__popover" role="menu">
+                <div className="border-b border-[var(--border)] px-3 py-2">
+                  <p className="truncate text-sm font-semibold text-[var(--text)]">
+                    {user.name || "Account"}
+                  </p>
+                  <p className="truncate text-xs text-[var(--text-muted)]">
+                    {user.email}
+                  </p>
+                </div>
                 <Link
-                  to={
-                    isAdmin
-                      ? "/admin/settings"
-                      : isInstructor
-                        ? "/instructor/settings"
-                        : "/user/settings"
-                  }
-                  className="
-        flex items-center gap-3
-        px-4 py-3
-        text-sm font-medium text-gray-700
-        hover:bg-gray-100
-        transition
-      "
+                  className="user-menu__item user-menu__item--workspace"
+                  to={workspaceHome}
+                  role="menuitem"
+                  onClick={() => setDropdownOpen(false)}
                 >
-                  <Settings className="w-4 h-4 text-gray-500" />
-                  Settings
+                  {workspaceLabel}
                 </Link>
-
-                {/* Help */}
                 <Link
-                  to="/help"
-                  className="
-        flex items-center gap-3
-        px-4 py-3
-        text-sm font-medium text-gray-700
-        hover:bg-gray-100
-        transition
-      "
+                  className="user-menu__item"
+                  to={settingsPath}
+                  role="menuitem"
+                  onClick={() => setDropdownOpen(false)}
                 >
-                  <HelpCircle className="w-4 h-4 text-gray-500" />
-                  Help
+                  <Settings size={16} /> Profile and settings
                 </Link>
-
-                {/* Divider */}
-                <div className="my-1 h-px bg-gray-200" />
-
-                {/* Logout */}
                 <button
-                  onClick={handleLogout}
+                  className="user-menu__item"
+                  type="button"
+                  role="menuitem"
                   disabled={loggingOut}
-                  className="
-        flex w-full items-center gap-3
-        px-4 py-3
-        text-sm font-medium
-        text-red-600
-        hover:bg-red-50
-        transition
-        disabled:opacity-60
-        disabled:cursor-not-allowed
-      "
+                  onClick={handleLogout}
                 >
-                  <LogOut className="w-4 h-4" />
-                  {loggingOut ? "Logging out..." : "Logout"}
+                  <LogOut size={16} />{" "}
+                  {loggingOut ? "Signing out…" : "Sign out"}
                 </button>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Mobile Toggle */}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className={`md:hidden p-2 rounded-xl ${scrolled ? "text-gray-700" : "text-white"}`}
-        >
-          {menuOpen ? <X /> : <Menu />}
-        </button>
-      </div>
-
-      {/* Mobile Menu */}
-      {menuOpen && (
-        <div className="md:hidden fixed inset-x-0 top-16 bottom-0 bg-white overflow-y-auto z-40 animate-[slide-in_0.3s_ease-out]">
-          <div className="p-4 space-y-2">
-            {navLinks.map(({ to, label, icon: Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-3 p-4 rounded-xl hover:bg-gray-50"
-              >
-                <Icon className="w-5 h-5" />
-                {label}
-              </Link>
-            ))}
-
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 p-4 rounded-xl text-red-600 hover:bg-red-50 w-full"
-            >
-              <LogOut /> Logout
-            </button>
+        ) : authPage ? (
+          <Link className="topbar__link hidden sm:inline-flex" to="/home">
+            Back to EduZone
+          </Link>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link className="topbar__link hidden sm:inline-flex" to="/login">
+              Sign in
+            </Link>
+            <Link className="btn btn-primary btn-sm" to="/signup">
+              Get started
+            </Link>
           </div>
-        </div>
+        )}
+      </div>
+      {publicMenuOpen && !workspace && !authPage && (
+        <nav className="public-mobile-menu" aria-label="Main navigation">
+          {user && (
+            <Link
+              to={workspaceHome}
+              className="workspace-sidebar__link"
+              onClick={() => setPublicMenuOpen(false)}
+            >
+              {workspaceLabel}
+            </Link>
+          )}
+          {publicLinks.map(([to, label]) => (
+            <Link
+              key={to}
+              to={to}
+              className="workspace-sidebar__link"
+              onClick={() => setPublicMenuOpen(false)}
+            >
+              {label}
+            </Link>
+          ))}
+          <Link
+            to="/help"
+            className="workspace-sidebar__link"
+            onClick={() => setPublicMenuOpen(false)}
+          >
+            Help center
+          </Link>
+          <Link
+            to="/contact"
+            className="workspace-sidebar__link"
+            onClick={() => setPublicMenuOpen(false)}
+          >
+            Contact
+          </Link>
+          {!user && (
+            <Link
+              to="/login"
+              className="workspace-sidebar__link"
+              onClick={() => setPublicMenuOpen(false)}
+            >
+              Sign in
+            </Link>
+          )}
+        </nav>
       )}
     </header>
   );
 };
 
 export default HeaderNav;
-
-// Add CSS animations
-const style = document.createElement("style");
-style.textContent = `
-  @keyframes fade-in {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  @keyframes slide-in {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
-  }
-  
-  .animate-fade-in {
-    animation: fade-in 0.2s ease-out;
-  }
-  
-  .animate-slide-in {
-    animation: slide-in 0.3s ease-out;
-  }
-`;
-document.head.appendChild(style);

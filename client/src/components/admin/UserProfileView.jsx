@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import axiosInstance from "../../services/axios";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { getUploadUrl } from "../../utils/constants";
+import { toast } from "react-hot-toast";
+import useConfirmDialog from "../common/useConfirmDialog";
 import {
   User,
   Mail,
@@ -24,6 +27,7 @@ import {
 const UserProfileView = ({ user }) => {
   const navigate = useNavigate();
   const currentUser = useSelector((state) => state.auth.user);
+  const confirm = useConfirmDialog();
 
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({
@@ -36,7 +40,6 @@ const UserProfileView = ({ user }) => {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -46,10 +49,14 @@ const UserProfileView = ({ user }) => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      await axiosInstance.put(`/api/users/${user._id}`, formData);
+      const response = await axiosInstance.put(`/api/users/${user._id}`, formData);
       setMsg("Profile updated successfully!");
       setErrorMsg("");
       setEditMode(false);
+      const updatedRole = response.data?.data?.user_type || formData.user_type;
+      if (updatedRole !== user.user_type) {
+        navigate(updatedRole === "student" ? "/admin/get-all-students" : "/admin/get-all-instructors", { replace: true });
+      }
       // Simulate data refresh
       setTimeout(() => setMsg(""), 3000);
     } catch (err) {
@@ -60,12 +67,18 @@ const UserProfileView = ({ user }) => {
   };
 
   const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: "Delete user account?",
+      message: `This permanently removes ${user.name}'s account. Enrollment and attendance records are not automatically deleted.`,
+      confirmLabel: "Delete account",
+    });
+    if (!confirmed) return;
     try {
       await axiosInstance.delete(`/api/users/${user._id}`);
-      alert("User deleted successfully!");
+      toast.success("User account deleted.");
       navigate(-1);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete user.");
+      toast.error(err.response?.data?.message || "Failed to delete user.");
     }
   };
 
@@ -109,6 +122,7 @@ const UserProfileView = ({ user }) => {
 
   const config = roleConfig[user.user_type] || roleConfig.student;
   const userInitial = user.name?.charAt(0) || user.email?.charAt(0) || "U";
+  const profileImage = getUploadUrl(user.profile_picture_url);
 
   return (
     <div className="min-h-screen bg-linear-to-b from-gray-50 to-white p-4 md:p-6 lg:p-8">
@@ -156,9 +170,9 @@ const UserProfileView = ({ user }) => {
               {/* User Avatar */}
               <div className="relative">
                 <div className="w-32 h-32 rounded-3xl bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center">
-                  {user.profile_picture_url ? (
+                  {profileImage ? (
                     <img
-                      src={user.profile_picture_url}
+                      src={profileImage}
                       alt="Profile"
                       className="w-full h-full rounded-3xl object-cover"
                     />
@@ -198,10 +212,11 @@ const UserProfileView = ({ user }) => {
                         type="email"
                         name="email"
                         value={formData.email}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50"
-                        placeholder="Enter email address"
+                        readOnly
+                        aria-describedby="email-edit-note"
+                        className="w-full cursor-not-allowed rounded-xl border border-white/30 bg-white/10 px-4 py-3 text-white/75"
                       />
+                      <p id="email-edit-note" className="mt-1 text-xs text-white/75">Login email cannot be changed here.</p>
                     </div>
                     {currentUser?.user_type === "admin" && (
                       <div>
@@ -243,7 +258,7 @@ const UserProfileView = ({ user }) => {
                         <Calendar className="w-5 h-5" />
                         <span>
                           Joined{" "}
-                          {new Date(user.registration_date).toLocaleDateString(
+                          {new Date(user.createdAt).toLocaleDateString(
                             "en-US",
                             {
                               year: "numeric",
@@ -346,7 +361,7 @@ const UserProfileView = ({ user }) => {
 
               {currentUser?.user_type === "admin" && !editMode && (
                 <button
-                  onClick={() => setShowDeleteConfirm(true)}
+                  onClick={handleDelete}
                   className="group flex items-center gap-3 px-8 py-3 bg-linear-to-r from-red-600 to-orange-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
                 >
                   <Trash2 className="w-5 h-5 group-hover:shake" />
@@ -367,19 +382,10 @@ const UserProfileView = ({ user }) => {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm text-gray-500 mb-2">
-                  Account Status
-                </label>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="font-medium text-gray-900">Active</span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-500 mb-2">
                   Member Since
                 </label>
                 <p className="font-medium text-gray-900">
-                  {new Date(user.registration_date).toLocaleDateString(
+                  {new Date(user.createdAt).toLocaleDateString(
                     "en-US",
                     {
                       year: "numeric",
@@ -388,12 +394,6 @@ const UserProfileView = ({ user }) => {
                     },
                   )}
                 </p>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-500 mb-2">
-                  Last Active
-                </label>
-                <p className="font-medium text-gray-900">Today, 2:30 PM</p>
               </div>
               <div>
                 <label className="block text-sm text-gray-500 mb-2">
@@ -410,62 +410,6 @@ const UserProfileView = ({ user }) => {
           </div>
         </div>
       </div>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-8">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                Delete User Account
-              </h3>
-              <p className="text-gray-600">
-                Are you sure you want to delete{" "}
-                <span className="font-semibold text-gray-900">
-                  {user.name}'s
-                </span>{" "}
-                account? This action cannot be undone.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="p-4 bg-red-50 rounded-xl">
-                <p className="text-sm text-red-700">
-                  ⚠️ Warning: This will permanently delete all user data
-                  including:
-                </p>
-                <ul className="text-sm text-red-600 mt-2 space-y-1 ml-4 list-disc">
-                  <li>User profile information</li>
-                  <li>Course progress and certificates</li>
-                  <li>All submitted assignments</li>
-                  <li>Account access permanently</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="flex gap-4 mt-8">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  handleDelete();
-                }}
-                className="flex-1 py-3 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl hover:shadow-lg transition-all"
-              >
-                Delete Account
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <style jsx>{`
         @keyframes shake {

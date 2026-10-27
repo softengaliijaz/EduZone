@@ -5,6 +5,7 @@ import {
   toggleLike,
   getLikesByCourse,
 } from "../../../features/post-interactions/likesSlice";
+import { toast } from "react-hot-toast";
 
 const LikeFeature = () => {
   const dispatch = useDispatch();
@@ -27,7 +28,7 @@ const LikeFeature = () => {
 
   const handleLike = async () => {
     if (!user?._id) {
-      window.alert("Please login to like this course.");
+      toast.error("Sign in to like this course.");
       return;
     }
 

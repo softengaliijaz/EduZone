@@ -59,6 +59,34 @@ export const getAllComments = createAsyncThunk(
   }
 );
 
+export const updateComment = createAsyncThunk(
+  "comments/updateComment",
+  async ({ id, text }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.put(`/api/comments/${id}`, { text });
+      return response.data.comment;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || error.message || "Failed to update comment",
+      );
+    }
+  },
+);
+
+export const deleteComment = createAsyncThunk(
+  "comments/deleteComment",
+  async (id, { rejectWithValue }) => {
+    try {
+      await axiosInstance.delete(`/api/comments/${id}`);
+      return id;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || error.message || "Failed to delete comment",
+      );
+    }
+  },
+);
+
 // SLICE
 const commentsSlice = createSlice({
   name: "comments",
@@ -79,6 +107,16 @@ const commentsSlice = createSlice({
         } else {
           state.comments = [newComment];
         }
+      })
+      .addCase(updateComment.fulfilled, (state, action) => {
+        state.comments = state.comments.map((comment) =>
+          comment._id === action.payload._id ? action.payload : comment,
+        );
+      })
+      .addCase(deleteComment.fulfilled, (state, action) => {
+        state.comments = state.comments.filter(
+          (comment) => comment._id !== action.payload,
+        );
       })
       .addCase(getComments.pending, (state) => {
         state.status = "loading";

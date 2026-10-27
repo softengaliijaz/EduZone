@@ -1,4 +1,4 @@
-import React from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import {
   Route,
   BrowserRouter as Router,
@@ -7,95 +7,109 @@ import {
   Navigate,
 } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import { getWorkspaceHome } from "../utils/roleNavigation";
 
 // Layouts and Navigation
 import HeaderNav from "../components/layout/Header";
+import WorkspaceSidebar from "../components/layout/WorkspaceSidebar";
 
-// Public Pages
-import HomePage from "../pages/app/home/Home";
-import LoginPage from "../pages/auth/LoginPage";
-import SignUpPage from "../pages/auth/SignUpPage";
-import AboutUs from "../components/app/about/AboutUs";
-import ContactUs from "../components/app/contact/ContactUs";
-import CourseSuccess from "../components/app/courses/CourseSuccess";
-import SeeAllCoursesList from "../pages/app/courses/AllCourses";
-import CourseDetail from "../pages/app/courses/CourseDetails";
-import ReadAllBlogs from "../pages/app/blogs/AllBlogs";
-import Help from "../pages/app/help/Help";
-import NotFound from "../utils/NotFound";
-import SeeAllEduZoneBenefits from "../components/app/home/AllBenefits";
-
-// Admin Pages
-import AdminDashboard from "../pages/admin/Dashboard";
-import StudentsListPage from "../pages/admin/students/StudentsList";
-import TeachersListPage from "../pages/admin/instructors/Instructors";
-import CreateBlogPage from "../pages/admin/blog/CreateBlog";
-import UpdateBlogPage from "../pages/admin/blog/UpdateBlog";
-import DeleteBlogPage from "../pages/admin/blog/DeleteBlog";
-import BlogListPage from "../pages/admin/blog/BlogsList";
-import CreateCoursePage from "../pages/admin/courses/CreateCourse";
-import UpdateCoursePage from "../pages/admin/courses/UpdateCourse";
-import DeleteCoursePage from "../pages/admin/courses/DeleteCourse";
-import CoursesListPage from "../pages/admin/courses/CoursesList";
-import UserProfilePage from "../components/admin/shared/UserProfilePage";
-
-// Instructor Pages
-import InstructorDashboard from "../pages/instructor/Dashboard";
-
-// Student Pages
-import LearningRoom from "../pages/app/learning-room/LearningRoom";
-import ContinueLearning from "../components/app/learning-room/ContinueLearning";
+// Route screens are split into separate bundles so dashboard-only libraries are
+// downloaded only when a user visits that workspace.
+const HomePage = lazy(() => import("../pages/app/home/Home"));
+const LoginPage = lazy(() => import("../pages/auth/LoginPage"));
+const SignUpPage = lazy(() => import("../pages/auth/SignUpPage"));
+const AboutUs = lazy(() => import("../components/app/about/AboutUs"));
+const ContactUs = lazy(() => import("../components/app/contact/ContactUs"));
+const CourseSuccess = lazy(() => import("../components/app/courses/CourseSuccess"));
+const SeeAllCoursesList = lazy(() => import("../pages/app/courses/AllCourses"));
+const CourseDetail = lazy(() => import("../pages/app/courses/CourseDetails"));
+const ReadAllBlogs = lazy(() => import("../pages/app/blogs/AllBlogs"));
+const Help = lazy(() => import("../pages/app/help/Help"));
+const NotFound = lazy(() => import("../utils/NotFound"));
+const SeeAllEduZoneBenefits = lazy(() => import("../components/app/home/AllBenefits"));
+const AdminDashboard = lazy(() => import("../pages/admin/Dashboard"));
+const StudentsListPage = lazy(() => import("../pages/admin/students/StudentsList"));
+const TeachersListPage = lazy(() => import("../pages/admin/instructors/Instructors"));
+const CreateBlogPage = lazy(() => import("../pages/admin/blog/CreateBlog"));
+const UpdateBlogPage = lazy(() => import("../pages/admin/blog/UpdateBlog"));
+const DeleteBlogPage = lazy(() => import("../pages/admin/blog/DeleteBlog"));
+const BlogListPage = lazy(() => import("../pages/admin/blog/BlogsList"));
+const CreateCoursePage = lazy(() => import("../pages/admin/courses/CreateCourse"));
+const UpdateCoursePage = lazy(() => import("../pages/admin/courses/UpdateCourse"));
+const DeleteCoursePage = lazy(() => import("../pages/admin/courses/DeleteCourse"));
+const CoursesListPage = lazy(() => import("../pages/admin/courses/CoursesList"));
+const UserProfilePage = lazy(() => import("../components/admin/shared/UserProfilePage"));
+const InstructorDashboard = lazy(() => import("../pages/instructor/Dashboard"));
+const LearningRoom = lazy(() => import("../pages/app/learning-room/LearningRoom"));
+const ContinueLearning = lazy(() => import("../components/app/learning-room/ContinueLearning"));
 
 // Route Protection
 import ProtectedRouteWrapper from "../routes/ProtectedRoutes";
 import RoleProtectedRouteWrapper from "../routes/RoleProtectedRoutes";
-import BlogsDetails from "../pages/app/blogs/BlogsDetails";
-import AdminProfileSettings from "../components/settings/AdminProfileSettings";
-import InstructorProfileSettings from "../components/settings/InstructorProfileSettings";
-import StudentProfileSettings from "../components/settings/StudentProfileSettings";
-import CertificateView from "../components/common/Certificate";
-import CommunityView from "../components/common/Community";
+const BlogsDetails = lazy(() => import("../pages/app/blogs/BlogsDetails"));
+const AdminProfileSettings = lazy(() => import("../components/settings/AdminProfileSettings"));
+const InstructorProfileSettings = lazy(() => import("../components/settings/InstructorProfileSettings"));
+const StudentProfileSettings = lazy(() => import("../components/settings/StudentProfileSettings"));
+const CertificateView = lazy(() => import("../components/common/Certificate"));
+const CommunityView = lazy(() => import("../components/common/Community"));
 
 const AppRoutes = () => {
   return (
     <Router>
+      <Suspense fallback={<div className="route-loading" role="status">Loading page…</div>}>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/*" element={<MainLayout />} />
       </Routes>
+      </Suspense>
     </Router>
   );
 };
 
 const MainLayout = () => {
   const location = useLocation();
-  const { isAuthenticated, user_type } = useAuth();
+  const { isAuthenticated, user_type, isInitializing } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const isWorkspace = ["/admin", "/instructor", "/user"].some((path) =>
+    location.pathname.startsWith(path),
+  );
 
-  const HIDE_NAVBAR_PATHS = [
-    "/login",
-    "/signup",
-    "/course-purchase-status",
-    "/notfound",
-  ];
-  const hideNavbar = HIDE_NAVBAR_PATHS.includes(location.pathname);
+  useEffect(() => setMenuOpen(false), [location.pathname]);
 
   return (
-    <>
-      {!hideNavbar && <HeaderNav />}
+    <div className={`app-frame${isWorkspace ? " app-frame--workspace" : ""}`}>
+      <HeaderNav
+        workspace={isWorkspace}
+        menuOpen={menuOpen}
+        onMenuToggle={() => setMenuOpen((open) => !open)}
+      />
+      {isWorkspace && (
+        <WorkspaceSidebar
+          role={user_type}
+          open={menuOpen}
+          onNavigate={() => setMenuOpen(false)}
+        />
+      )}
+      <main className={`app-main ${isWorkspace ? "workspace-main" : "public-main"}`}>
       <Routes>
+        <Route
+          path="/"
+          element={
+            isInitializing ? (
+              <div className="route-loading" role="status">Checking your account…</div>
+            ) : (
+              <Navigate to={isAuthenticated ? getWorkspaceHome(user_type) : "/home"} replace />
+            )
+          }
+        />
         {/* Public Routes */}
         <Route path="/home" element={<HomePage />} />
         <Route
           path="/login"
           element={
             isAuthenticated ? (
-              user_type === "admin" ? (
-                <Navigate to="/admin/dashboard-page" />
-              ) : user_type === "instructor" ? (
-                <Navigate to="/instructor/instructor-dashboard-page" />
-              ) : (
-                <Navigate to="/user/learning-room" />
-              )
+              <Navigate to={getWorkspaceHome(user_type)} replace />
+            ) : isInitializing ? (
+              <div className="route-loading" role="status">Checking your account…</div>
             ) : (
               <LoginPage />
             )
@@ -105,13 +119,9 @@ const MainLayout = () => {
           path="/signup"
           element={
             isAuthenticated ? (
-              user_type === "admin" ? (
-                <Navigate to="/admin/dashboard-page" />
-              ) : user_type === "instructor" ? (
-                <Navigate to="/instructor/instructor-dashboard-page" />
-              ) : (
-                <Navigate to="/user/learning-room" />
-              )
+              <Navigate to={getWorkspaceHome(user_type)} replace />
+            ) : isInitializing ? (
+              <div className="route-loading" role="status">Checking your account…</div>
             ) : (
               <SignUpPage />
             )
@@ -130,8 +140,9 @@ const MainLayout = () => {
         <Route path="/course-purchase-status" element={<CourseSuccess />} />
 
         {/* Protected Routes */}
+        <Route path="/contact" element={<ContactUs />} />
+
         <Route element={<ProtectedRouteWrapper />}>
-          <Route path="/contact" element={<ContactUs />} />
 
           {/* Admin Only */}
           <Route
@@ -207,6 +218,10 @@ const MainLayout = () => {
               element={<UpdateCoursePage />}
             />
             <Route
+              path="/admin/courses-management/course/:id"
+              element={<CourseDetail workspace managementView />}
+            />
+            <Route
               path="/admin/courses-management/delete-course"
               element={<DeleteCoursePage />}
             />
@@ -225,6 +240,10 @@ const MainLayout = () => {
               element={<UpdateCoursePage />}
             />
             <Route
+              path="/instructor/courses-management/course/:id"
+              element={<CourseDetail workspace managementView />}
+            />
+            <Route
               path="/instructor/courses-management/delete-course"
               element={<DeleteCoursePage />}
             />
@@ -235,6 +254,8 @@ const MainLayout = () => {
             element={<RoleProtectedRouteWrapper allowedRoles={["student"]} />}
           >
             <Route path="/user/learning-room" element={<LearningRoom />} />
+            <Route path="/user/explore-courses" element={<SeeAllCoursesList workspace />} />
+            <Route path="/user/courses/:id" element={<CourseDetail workspace />} />
             <Route
               path="/user/continue-learning"
               element={<ContinueLearning />}
@@ -249,7 +270,8 @@ const MainLayout = () => {
         <Route path="/notfound" element={<NotFound />} />
         <Route path="*" element={<Navigate to="/notfound" replace />} />
       </Routes>
-    </>
+      </main>
+    </div>
   );
 };
 

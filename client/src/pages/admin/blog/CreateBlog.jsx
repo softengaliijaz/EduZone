@@ -10,7 +10,6 @@ import {
   Layers,
   Image as ImageIcon,
   Sparkles,
-  CheckCircle,
   Loader2,
   X,
 } from "lucide-react";
@@ -84,20 +83,15 @@ const CreateBlogPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.content || !formData.category) {
+    if (!formData.title.trim() || !formData.content.trim() || !formData.category.trim()) {
       toast.error("Please fill all required fields");
       return;
     }
 
-    if (formData.content.length < 500) {
-      toast.error("Content should be at least 500 characters");
-      return;
-    }
-
     const data = new FormData();
-    data.append("title", formData.title);
-    data.append("content", formData.content);
-    data.append("category", formData.category);
+    data.append("title", formData.title.trim());
+    data.append("content", formData.content.trim());
+    data.append("category", formData.category.trim());
     data.append(
       "tags",
       JSON.stringify(
@@ -112,9 +106,7 @@ const CreateBlogPage = () => {
     try {
       await dispatch(createBlogThunk(data)).unwrap();
       toast.success("🎉 Blog created successfully!");
-      setTimeout(() => {
-        navigate("/admin/blog");
-      }, 1500);
+      navigate("/admin/blog/get-all-blogs");
     } catch (err) {
       toast.error(err || "Failed to create blog");
     }
@@ -138,29 +130,6 @@ const CreateBlogPage = () => {
           </div>
         </div>
 
-        {/* Progress Steps */}
-        <div className="flex items-center justify-between mb-8">
-          {["Blog Details", "Content", "SEO", "Publish"].map((step, index) => (
-            <div key={step} className="flex items-center">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-                ${index === 0 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
-              >
-                {index === 0 ? <CheckCircle className="w-4 h-4" /> : index + 1}
-              </div>
-              <span
-                className={`ml-2 text-sm ${index === 0 ? "text-blue-600 font-medium" : "text-gray-500"}`}
-              >
-                {step}
-              </span>
-              {index < 3 && (
-                <div
-                  className={`w-16 h-0.5 mx-4 ${index === 0 ? "bg-blue-600" : "bg-gray-200"}`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8">
@@ -274,6 +243,7 @@ const CreateBlogPage = () => {
             </label>
             <textarea
               rows={12}
+              maxLength={5000}
               name="content"
               value={formData.content}
               onChange={handleChange}
@@ -281,9 +251,10 @@ const CreateBlogPage = () => {
               placeholder="Write your blog content here..."
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
+            <p className="text-xs text-gray-500 mt-2">Separate paragraphs with a blank line to make the article easier to read.</p>
             <div className="flex justify-between mt-2">
               <p className="text-xs text-gray-500">
-                Minimum 500 characters recommended
+                Add enough detail to make the article useful
               </p>
               <p
                 className={`text-xs ${characterCount >= 500 ? "text-green-600" : "text-gray-500"}`}

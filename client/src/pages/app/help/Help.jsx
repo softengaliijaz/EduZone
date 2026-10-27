@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { AppFooter } from "../../../components/layout/Footer";
 
 const Help = () => {
   return (
@@ -66,7 +65,6 @@ const Help = () => {
       </div>
       <br />
 
-      <AppFooter />
     </>
   );
 };

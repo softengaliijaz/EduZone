@@ -35,6 +35,7 @@ const InstructorDashboard = () => {
         <main className="flex-1 p-4 md:p-8 space-y-6">
           <UserProfileCard />
           <AdminDashboardStatsCards
+            variant="instructor"
             studentsCount={counts.students || counts.enrollments || 0}
             instructorsCount={1}
             coursesCount={counts.courses || instructorCourses.length}
@@ -46,15 +47,14 @@ const InstructorDashboard = () => {
             enrollmentTrend={trends.enrollments || []}
           />
           <AdminCoursesGrid
+            workspace="instructor"
             courses={instructorCourses}
             loading={loading}
             error={error}
+            onRetry={() => dispatch(fetchCourses())}
           />
         </main>
       </div>
-      <footer className="bg-[#1D2130] px-4 py-6 border-t text-center text-sm text-white">
-        <p>© Copyright EDUZONE 2025 - {new Date().getFullYear()}</p>
-      </footer>
     </div>
   );
 };

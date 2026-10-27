@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  fetchCourses,
+  fetchAllCourses,
   deleteCourse,
 } from "../../../features/admin/courseSlice";
 import { useNavigate } from "react-router-dom";
@@ -20,38 +20,47 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { getUploadUrl } from "../../../utils/constants";
+import useConfirmDialog from "../../../components/common/useConfirmDialog";
 
 const CoursesListPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const confirm = useConfirmDialog();
 
   const { courses, loading, error } = useSelector((state) => state.course);
   const { user } = useSelector((state) => state.auth);
+  const isAdmin = user?.user_type === "admin";
+  const workspaceBase = user?.user_type === "instructor" ? "/instructor" : "/admin";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
 
   useEffect(() => {
-    dispatch(fetchCourses());
+    dispatch(fetchAllCourses());
   }, [dispatch]);
 
   const handleDelete = async (id, title) => {
-    if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
-      try {
-        await dispatch(deleteCourse({ id })).unwrap();
-        toast.success("Course deleted successfully!");
-      } catch (err) {
-        toast.error("Failed to delete course");
-      }
+    const confirmed = await confirm({
+      title: "Delete course?",
+      message: `“${title}” will be permanently removed. Existing enrollment records are not automatically deleted.`,
+      confirmLabel: "Delete course",
+    });
+    if (!confirmed) return;
+    try {
+      await dispatch(deleteCourse({ id })).unwrap();
+      toast.success("Course deleted successfully!");
+    } catch (error) {
+      toast.error(typeof error === "string" ? error : "Failed to delete course");
     }
   };
 
   const handleView = (id) => {
-    navigate(`/courses/course-details/course/${id}`);
+    navigate(`${workspaceBase}/courses-management/course/${id}`);
   };
 
   const handleEdit = (id) => {
-    navigate(`/admin/courses-management/update-course/${id}`);
+    navigate(`${workspaceBase}/courses-management/update-course/${id}`);
   };
 
   /** helpers */
@@ -60,17 +69,12 @@ const CoursesListPage = () => {
   const getCreatorName = (creator) =>
     isCreatorObject(creator) ? creator?.name || "Unknown" : "Unknown";
 
-  const getCreatorType = (creator) =>
-    isCreatorObject(creator)
-      ? creator?.user_type?.toUpperCase() || "UNKNOWN"
-      : "UNKNOWN";
-
   const getImageUrl = (course) =>
     course.imageUrl ||
-    `${import.meta.env.VITE_BASE_URL}/uploads/${course.image}`;
+    getUploadUrl(course.image);
 
   /** filter only current user's courses */
-  const myCourses = courses?.filter((course) =>
+  const visibleCourses = isAdmin ? courses : courses?.filter((course) =>
     isCreatorObject(course.courseCreatedBy)
       ? course.courseCreatedBy?._id === user?._id
       : course.courseCreatedBy === user?._id,
@@ -79,11 +83,11 @@ const CoursesListPage = () => {
   // Get unique categories
   const categories = [
     "all",
-    ...new Set(myCourses?.map((c) => c.category).filter(Boolean)),
+    ...new Set(visibleCourses?.map((c) => c.category).filter(Boolean)),
   ];
 
   // Filter courses based on search and category
-  const filteredCourses = myCourses?.filter((course) => {
+  const filteredCourses = visibleCourses?.filter((course) => {
     const matchesSearch =
       course.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.description?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -102,14 +106,14 @@ const CoursesListPage = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-              My Courses
+              {isAdmin ? "Course Catalog" : "My Courses"}
             </h1>
             <p className="text-gray-600">
-              Manage and edit your uploaded courses
+              {isAdmin ? "Review and manage courses created across the platform" : "Manage and edit your uploaded courses"}
             </p>
           </div>
           <button
-            onClick={() => navigate("/admin/courses-management/create-course")}
+            onClick={() => navigate(`${workspaceBase}/courses-management/create-course`)}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             <Plus className="w-5 h-5" />
@@ -167,7 +171,7 @@ const CoursesListPage = () => {
               : "You haven't uploaded any courses yet"}
           </p>
           <button
-            onClick={() => navigate("/admin/courses-management/create-course")}
+            onClick={() => navigate(`${workspaceBase}/courses-management/create-course`)}
             className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             <Plus className="w-5 h-5" />
@@ -203,15 +207,6 @@ const CoursesListPage = () => {
                         <h3 className="font-semibold text-gray-900 line-clamp-1">
                           {course.title}
                         </h3>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            course.status === "published"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {course.status || "draft"}
-                        </span>
                       </div>
                       <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                         {course.description}
@@ -275,7 +270,7 @@ const CoursesListPage = () => {
                       Duration
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Status
+                      Students
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Actions
@@ -325,22 +320,15 @@ const CoursesListPage = () => {
                         {course.duration}
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            course.status === "published"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {course.status || "draft"}
-                        </span>
+                        <span className="text-gray-700">{course.students ?? 0}</span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleView(course._id)}
                             className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="View"
+                            title="Preview course details"
+                            aria-label={`Preview ${course.title}`}
                           >
                             <Eye className="w-4 h-4" />
                           </button>

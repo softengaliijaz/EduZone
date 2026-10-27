@@ -21,11 +21,14 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import useConfirmDialog from "../../../components/common/useConfirmDialog";
+import { getUploadUrl } from "../../../utils/constants";
 
 const UpdateBlogPage = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const confirm = useConfirmDialog();
 
   const {
     blogs = [],
@@ -45,7 +48,6 @@ const UpdateBlogPage = () => {
   const [originalImage, setOriginalImage] = useState(null);
   const [blogLoaded, setBlogLoaded] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const popularCategories = [
     "Technology",
@@ -78,9 +80,7 @@ const UpdateBlogPage = () => {
         category: blog.category || "",
       });
 
-      const imageUrl = blog.image
-        ? `${import.meta.env.VITE_BASE_URL}/uploads/${blog.image}`
-        : null;
+      const imageUrl = getUploadUrl(blog.image);
 
       if (imageUrl) {
         setPreview(imageUrl);
@@ -170,14 +170,18 @@ const UpdateBlogPage = () => {
   };
 
   const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: "Delete article?",
+      message: "This article will be permanently removed and will no longer be publicly available.",
+      confirmLabel: "Delete article",
+    });
+    if (!confirmed) return;
     try {
       await dispatch(deleteBlog(id)).unwrap();
       toast.success("Blog deleted successfully!");
       navigate("/admin/blog");
-    } catch (err) {
+    } catch {
       toast.error("Failed to delete blog");
-    } finally {
-      setShowDeleteModal(false);
     }
   };
 
@@ -197,40 +201,6 @@ const UpdateBlogPage = () => {
   return (
     <>
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-in slide-in-from-bottom-2">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Delete Blog
-              </h3>
-              <p className="text-gray-600">
-                Are you sure you want to delete this blog? This action cannot be
-                undone.
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium"
-              >
-                Delete Permanently
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="max-w-4xl mx-auto p-4">
         {/* Header */}
         <div className="mb-8">
@@ -530,7 +500,7 @@ const UpdateBlogPage = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => setShowDeleteModal(true)}
+                  onClick={handleDelete}
                   className="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium"
                 >
                   Delete Blog

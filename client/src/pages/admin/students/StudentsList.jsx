@@ -1,335 +1,101 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useFetchData from "../../../hooks/useCustomHooks";
-import { BASE_URL } from "../../../utils/constants";
+import { BookOpen, GraduationCap, Search, Users, RotateCw, Eye } from "lucide-react";
+import axiosInstance from "../../../services/axios";
 import Loader from "../../../components/common/Loader";
-import ErrorBox from "../../../components/common/ErrorBox";
-import {
-  Search,
-  Filter,
-  User,
-  Mail,
-  GraduationCap,
-  Eye,
-  MoreVertical,
-  Users,
-  TrendingUp,
-} from "lucide-react";
+import { getUploadUrl } from "../../../utils/constants";
 
 const StudentsListPage = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedFilters, setSelectedFilters] = useState({
-    status: "all",
-    sortBy: "newest",
-  });
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [enrollmentFilter, setEnrollmentFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const studentRole = "student";
-  const {
-    data: allUsers,
-    loading: studentLoader,
-    error: studentError,
-    refetch: refetchStudents,
-  } = useFetchData(`${BASE_URL}/api/users/role/${studentRole}`, "GET");
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    axiosInstance.get("/api/admin/students")
+      .then(({ data }) => { if (active) setStudents(data.data || []); })
+      .catch((requestError) => { if (active) setError(requestError.response?.data?.message || "Could not load student records."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [reloadKey]);
 
-  const students =
-    allUsers?.filter((user) => user.user_type === "student") || [];
+  const filteredStudents = useMemo(() => students
+    .filter((student) => {
+      const query = search.trim().toLowerCase();
+      const matchesSearch = !query || [student.name, student.email, student.bio]
+        .some((value) => value?.toLowerCase().includes(query));
+      const enrolled = (student.learning?.enrolledCourses || 0) > 0;
+      return matchesSearch && (enrollmentFilter === "all" || (enrollmentFilter === "enrolled" ? enrolled : !enrolled));
+    })
+    .sort((a, b) => {
+      if (sortBy === "name") return (a.name || "").localeCompare(b.name || "");
+      if (sortBy === "courses") return (b.learning?.enrolledCourses || 0) - (a.learning?.enrolledCourses || 0);
+      if (sortBy === "progress") return (b.learning?.averageProgress || 0) - (a.learning?.averageProgress || 0);
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    }), [students, search, enrollmentFilter, sortBy]);
 
-  // Filter and search students
-  const filteredStudents = students.filter((student) => {
-    const matchesSearch =
-      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.bio?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
-
-  const getAvatar = (student) =>
-    student.profile_picture_url ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name || "Student")}&background=3B82F6&color=fff&size=128`;
-
-  if (studentLoader) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader title="Loading students..." />
-      </div>
-    );
-  }
-
-  if (studentError) {
-    return <ErrorBox message={studentError} onRetry={refetchStudents} />;
-  }
-
-  if (!students?.length) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <ErrorBox message="No students found." />
-      </div>
-    );
-  }
+  if (loading) return <Loader title="Loading student records…" />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 rounded-full text-sm font-semibold mb-3">
-                <Users className="w-4 h-4" />
-                STUDENT MANAGEMENT
-              </div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                Student Directory
-              </h1>
-              <p className="text-gray-600">
-                Manage and monitor all student accounts in your learning
-                platform
-              </p>
-            </div>
-            <button className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all">
-              <User className="w-5 h-5" />
-              Add New Student
-            </button>
-          </div>
-
-          {/* Search and Filter Bar */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search students by name, email, or bio..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <select
-                  value={selectedFilters.status}
-                  onChange={(e) =>
-                    setSelectedFilters((prev) => ({
-                      ...prev,
-                      status: e.target.value,
-                    }))
-                  }
-                  className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="premium">Premium</option>
-                </select>
-
-                <select
-                  value={selectedFilters.sortBy}
-                  onChange={(e) =>
-                    setSelectedFilters((prev) => ({
-                      ...prev,
-                      sortBy: e.target.value,
-                    }))
-                  }
-                  className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="name">Name A-Z</option>
-                  <option value="engagement">Engagement</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  <span>{filteredStudents.length} students found</span>
-                </div>
-                <div className="flex items-center gap-2 text-green-600">
-                  <TrendingUp className="w-4 h-4" />
-                  <span>Total: {students.length}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+    <section className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+      <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-2 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[var(--brand-strong)]"><Users size={16} /> Admin · People</p>
+          <h1 className="text-3xl font-bold text-[var(--text)]">Students</h1>
+          <p className="mt-2 text-[var(--text-muted)]">Review student accounts, course enrollment, and learning progress.</p>
         </div>
-
-        {/* Students Grid/List */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          {/* Table Header - Desktop */}
-          <div className="hidden lg:grid grid-cols-12 gap-4 p-6 bg-gradient-to-r from-blue-50 to-cyan-50 border-b border-gray-200">
-            <div className="col-span-3 font-semibold text-gray-900">
-              Student Profile
-            </div>
-            <div className="col-span-2 font-semibold text-gray-900">
-              Contact
-            </div>
-            <div className="col-span-3 font-semibold text-gray-900">
-              Progress
-            </div>
-            <div className="col-span-2 font-semibold text-gray-900">Status</div>
-            <div className="col-span-2 font-semibold text-gray-900 text-right">
-              Actions
-            </div>
-          </div>
-
-          {/* Students List */}
-          <div className="divide-y divide-gray-100">
-            {filteredStudents.map((student) => (
-              <div
-                key={student._id}
-                className="group hover:bg-gray-50 transition-colors"
-              >
-                {/* Desktop View */}
-                <div className="hidden lg:grid grid-cols-12 gap-4 p-6 items-center">
-                  {/* Profile */}
-                  <div className="col-span-3">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <img
-                          src={getAvatar(student)}
-                          alt={student.name}
-                          className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow"
-                        />
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white"></div>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          {student.name}
-                        </h3>
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
-                          <GraduationCap className="w-4 h-4" />
-                          Student
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Contact */}
-                  <div className="col-span-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Mail className="w-4 h-4" />
-                        <span className="text-sm truncate">
-                          {student.email}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Joined{" "}
-                        {new Date(
-                          student.createdAt || Date.now(),
-                        ).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Progress */}
-                  <div className="col-span-3">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Course Progress</span>
-                        <span className="font-semibold">42%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
-                          style={{ width: "42%" }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Status */}
-                  <div className="col-span-2">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      Active
-                    </span>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="col-span-2 flex justify-end gap-2">
-                    <button
-                      onClick={() => navigate(`/admin/students/${student._id}`)}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View
-                    </button>
-                    <button className="p-2 rounded-lg hover:bg-gray-200 transition-colors">
-                      <MoreVertical className="w-5 h-5 text-gray-500" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Mobile View */}
-                <div className="lg:hidden p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <img
-                          src={getAvatar(student)}
-                          alt={student.name}
-                          className="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow"
-                        />
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 text-lg">
-                          {student.name}
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                          <Mail className="w-4 h-4" />
-                          <span className="truncate">{student.email}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <button className="p-2 rounded-lg hover:bg-gray-200 transition-colors">
-                      <MoreVertical className="w-5 h-5 text-gray-500" />
-                    </button>
-                  </div>
-
-                  {student.bio && (
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                      {student.bio}
-                    </p>
-                  )}
-
-                  <div className="space-y-3 mb-4">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">Progress</span>
-                        <span className="font-semibold">42%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
-                          style={{ width: "42%" }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => navigate(`/admin/students/${student._id}`)}
-                      className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View Profile
-                    </button>
-                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
-                      Message
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="flex flex-wrap gap-3">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"><span className="block text-xs text-[var(--text-muted)]">Students</span><strong className="text-xl text-[var(--text)]">{students.length}</strong></div>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"><span className="block text-xs text-[var(--text-muted)]">Enrolled</span><strong className="text-xl text-[var(--text)]">{students.filter((student) => student.learning?.enrolledCourses > 0).length}</strong></div>
         </div>
+      </header>
+
+      <div className="mb-5 grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[minmax(16rem,1fr)_12rem_12rem]">
+        <label className="relative block">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
+          <input aria-label="Search students" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, email, or bio" className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2.5 pl-10 pr-3 text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus)]" />
+        </label>
+        <select aria-label="Filter students by enrollment" value={enrollmentFilter} onChange={(event) => setEnrollmentFilter(event.target.value)} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[var(--text)]">
+          <option value="all">All students</option><option value="enrolled">Has enrollments</option><option value="not-enrolled">No enrollments</option>
+        </select>
+        <select aria-label="Sort students" value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[var(--text)]">
+          <option value="newest">Recently joined</option><option value="name">Name A–Z</option><option value="courses">Most courses</option><option value="progress">Highest progress</option>
+        </select>
       </div>
-    </div>
+
+      {error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-800" role="alert"><p>{error}</p><button onClick={() => { setError(""); setReloadKey((key) => key + 1); }} className="mt-3 inline-flex items-center gap-2 font-medium"><RotateCw size={16} /> Retry</button></div>
+      ) : filteredStudents.length === 0 ? (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-6 py-16 text-center"><Users className="mx-auto mb-3 text-[var(--text-muted)]" size={30} /><h2 className="text-lg font-semibold text-[var(--text)]">{students.length ? "No matching students" : "No student accounts yet"}</h2><p className="mt-1 text-[var(--text-muted)]">{students.length ? "Try another search or enrollment filter." : "Student accounts will appear here when they register."}</p></div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+          <div className="hidden grid-cols-[minmax(12rem,1.35fr)_minmax(10rem,1fr)_6rem_7rem_9rem] gap-4 border-b border-[var(--border)] bg-[var(--surface-raised)] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] xl:grid"><span>Student</span><span>Learning activity</span><span>Enrolled</span><span>Progress</span><span className="text-right">Actions</span></div>
+          {filteredStudents.map((student) => {
+            const progress = student.learning?.averageProgress || 0;
+            const avatarUrl = student.profile_picture_url
+              ? student.profile_picture_url.startsWith("http")
+                ? student.profile_picture_url
+                : getUploadUrl(student.profile_picture_url)
+              : null;
+            return (
+              <article key={student._id} className="grid gap-4 border-b border-[var(--border)] p-4 last:border-0 xl:grid-cols-[minmax(12rem,1.35fr)_minmax(10rem,1fr)_6rem_7rem_9rem] xl:items-center xl:px-5">
+                <div className="flex min-w-0 items-center gap-3"><span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-soft)] font-semibold text-[var(--brand-strong)]">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : student.name?.charAt(0)?.toUpperCase() || "S"}</span><div className="min-w-0"><h2 className="truncate font-semibold text-[var(--text)]">{student.name}</h2><p className="truncate text-sm text-[var(--text-muted)]">{student.email}</p><time className="mt-1 block text-xs text-[var(--text-muted)]" dateTime={student.createdAt}>Joined {student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "—"}</time></div></div>
+                <p className="text-sm text-[var(--text-muted)]">{student.learning?.completedCourses || 0} completed course{student.learning?.completedCourses === 1 ? "" : "s"}</p>
+                <p className="inline-flex items-center gap-2 text-sm text-[var(--text)]"><BookOpen size={16} className="text-[var(--brand-strong)]" />{student.learning?.enrolledCourses || 0}</p>
+                <div><div className="mb-1 flex justify-between text-xs text-[var(--text-muted)]"><span>Average</span><span>{progress}%</span></div><div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-raised)]"><div className="h-full rounded-full bg-[var(--brand-strong)]" style={{ width: `${Math.min(100, progress)}%` }} /></div></div>
+                <div className="flex justify-end"><button onClick={() => navigate(`/admin/students/${student._id}`)} className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--surface-raised)]"><Eye size={16} /> View record</button></div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 };
 

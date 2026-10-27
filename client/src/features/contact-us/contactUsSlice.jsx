@@ -7,19 +7,20 @@ export const contactUs = createAsyncThunk(
     try {
       const response = await axiosInstance.post(
         "/api/contact/send-message",
-        formData
+        formData,
       );
       if (!response) {
         return thunkAPI.rejectWithValue("No response from server");
       }
-      console.log("Contact Us response:", response.data);
       return response.data;
     } catch (error) {
       return thunkAPI.rejectWithValue(
-        error?.response?.data?.message || "Contact Us failed"
+        error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          "Contact Us failed",
       );
     }
-  }
+  },
 );
 
 const contactUsSlice = createSlice({

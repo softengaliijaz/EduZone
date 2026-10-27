@@ -7,7 +7,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => (
   <aside className="w-full md:w-64 bg-white border-r px-4 py-6">
     <h2 className="text-xl font-semibold mb-6 text-[#1C1E53]">Settings</h2>
     <nav className="space-y-2">
-      {tabs.map(({ id, label, icon: Icon }) => (
+      {tabs.map(({ id, label, icon }) => (
         <button
           key={id}
           onClick={() => setActiveTab(id)}
@@ -17,7 +17,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => (
               : "text-gray-700"
           }`}
         >
-          <Icon className="w-5 h-5" />
+          {React.createElement(icon, { className: "w-5 h-5" })}
           {label}
         </button>
       ))}

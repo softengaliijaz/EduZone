@@ -1,380 +1,148 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { register } from "../../features/auth/authSlice";
-import { useNavigate } from "react-router-dom";
-import {
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  User,
-  ArrowRight,
-  CheckCircle,
-  Shield,
-  Sparkles,
-  Award,
-  Users,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { AlertCircle, ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail, UserRound, LoaderCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
-import SocialLogin from "../../components/auth/SocialLogin";
-import RegisterLeftHeroSection from "../../components/auth/RegisterLeftHeroSection";
+import { register } from "../../features/auth/authSlice";
+import AuthVisualPanel from "../../components/auth/AuthVisualPanel";
+import { getWorkspaceHome } from "../../utils/roleNavigation";
+
+const getPasswordStrength = (password) => [
+  password.length >= 8,
+  /[A-Z]/.test(password),
+  /[0-9]/.test(password),
+  /[^A-Za-z0-9]/.test(password),
+].filter(Boolean).length;
 
 const SignUpPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
   const { loading, error, user } = useSelector((state) => state.auth);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
-  const [passwordStrength, setPasswordStrength] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+  const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
 
   useEffect(() => {
-    if (user) {
-      toast.success(`Welcome to EduZone, ${user.name}!`);
-      if (user.user_type === "admin") {
-        navigate("/admin/dashboard-page");
-      } else if (user.user_type === "instructor") {
-        navigate("/instructor/instructor-dashboard-page");
-      } else {
-        navigate("/user/learning-room");
-      }
-    }
+    if (!user) return;
+    navigate(getWorkspaceHome(user.user_type), { replace: true });
   }, [user, navigate]);
 
-  const validateForm = (name, email, password, confirmPassword) => {
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const cleanName = name.trim();
+    const cleanEmail = email.trim();
     const errors = {};
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!name.trim()) {
-      errors.name = "Full name is required";
-    }
-
-    if (!email) {
-      errors.email = "Email is required";
-    } else if (!emailRegex.test(email)) {
-      errors.email = "Please enter a valid email address";
-    }
-
-    if (!password) {
-      errors.password = "Password is required";
-    } else if (password.length < 8) {
-      errors.password = "Password must be at least 8 characters";
-    }
-
-    if (!confirmPassword) {
-      errors.confirmPassword = "Please confirm your password";
-    } else if (password !== confirmPassword) {
-      errors.confirmPassword = "Passwords do not match";
-    }
-
-    if (!agreedToTerms) {
-      errors.terms = "You must agree to the terms and conditions";
-    }
-
-    return errors;
-  };
-
-  const checkPasswordStrength = (password) => {
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^A-Za-z0-9]/.test(password)) strength++;
-    return strength;
-  };
-
-  const handlePasswordChange = (password) => {
-    setPasswordStrength(checkPasswordStrength(password));
-  };
-
-  const getStrengthColor = (strength) => {
-    if (strength === 0) return "bg-gray-300";
-    if (strength === 1) return "bg-red-500";
-    if (strength === 2) return "bg-orange-500";
-    if (strength === 3) return "bg-yellow-500";
-    return "bg-green-500";
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const form = e.target;
-
-    const userData = {
-      name: form.name.value.trim(),
-      email: form.email.value.trim(),
-      password: form.password.value,
-      confirmPassword: form.confirmPassword?.value,
-    };
-
-    const errors = validateForm(
-      userData.name,
-      userData.email,
-      userData.password,
-      userData.confirmPassword,
-    );
+    if (cleanName.length < 2) errors.name = "Enter your name (at least 2 characters).";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) errors.email = "Enter a valid email address.";
+    if (password.length < 8) errors.password = "Use at least 8 characters for your password.";
+    if (!confirmPassword) errors.confirmPassword = "Confirm your password.";
+    else if (password !== confirmPassword) errors.confirmPassword = "Those passwords don’t match.";
+    if (!agreedToTerms) errors.terms = "Please confirm before creating your account.";
     setFormErrors(errors);
+    if (Object.keys(errors).length) return;
 
-    if (Object.keys(errors).length > 0) {
-      return;
-    }
-
-    const result = await dispatch(
-      register({
-        name: userData.name,
-        email: userData.email,
-        password: userData.password,
-      }),
-    );
-
+    const result = await dispatch(register({ name: cleanName, email: cleanEmail, password }));
     if (register.fulfilled.match(result)) {
-      toast.success("Account created successfully! Redirecting...");
-    } else if (register.rejected.match(result)) {
-      toast.error(result.payload || "Registration failed. Please try again.");
+      toast.success("Your account is ready. Welcome to EduZone.");
+    } else {
+      toast.error(result.payload || "We couldn’t create your account. Please try again.");
     }
+  };
 
-    form.reset();
-    setPasswordStrength(0);
+  const updateField = (field, value, setter) => {
+    setter(value);
+    setFormErrors((current) => ({ ...current, [field]: "" }));
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Hero Section */}
-      <RegisterLeftHeroSection />
-
-      {/* Right Side - Sign Up Form */}
-      <div className="w-full lg:w-1/2 min-h-screen flex items-center justify-center bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
-        <div className="w-full max-w-md">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-r from-blue-600 to-purple-600 rounded-2xl mb-4">
-              <User className="w-8 h-8 text-white" />
-            </div>
-
-            <h2 className="text-3xl font-bold text-white mb-2">
-              Create Account
-            </h2>
-            <p className="text-gray-300">
-              Join EduZone and start learning today
-            </p>
+    <div className="auth-layout auth-layout--signup">
+      <AuthVisualPanel mode="signup" />
+      <div className="auth-main">
+        <section className="auth-card auth-card--signup" aria-labelledby="signup-title">
+          <div className="auth-card__heading">
+            <span className="auth-card__kicker">START SOMETHING GOOD</span>
+            <h2 id="signup-title">Create your account</h2>
+            <p>A few details, then you’re ready to explore.</p>
           </div>
 
-          {/* Error Display */}
           {error && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-red-400" />
-                <p className="text-red-300 text-sm">{error}</p>
-              </div>
+            <div className="auth-alert" role="alert">
+              <AlertCircle size={18} aria-hidden="true" />
+              <span>{error}</span>
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name Field */}
-            <div>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  name="name"
-                  type="text"
-                  placeholder="Full name"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
-                  required
-                />
+          <form className="auth-form auth-form--signup" onSubmit={handleSubmit} noValidate>
+            <div className="auth-field-group">
+              <label className="auth-label" htmlFor="signup-name">Your name</label>
+              <div className={`auth-field${formErrors.name ? " auth-field--invalid" : ""}`}>
+                <UserRound className="auth-field__icon" size={18} aria-hidden="true" />
+                <input id="signup-name" name="name" type="text" autoComplete="name" placeholder="How should we call you?" value={name} onChange={(event) => updateField("name", event.target.value, setName)} aria-invalid={Boolean(formErrors.name)} aria-describedby={formErrors.name ? "signup-name-error" : undefined} />
               </div>
-              {formErrors.name && (
-                <p className="mt-2 text-sm text-red-400">{formErrors.name}</p>
-              )}
+              {formErrors.name && <p id="signup-name-error" className="auth-field-error">{formErrors.name}</p>}
             </div>
 
-            {/* Email Field */}
-            <div>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  name="email"
-                  type="email"
-                  placeholder="Email address"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
-                  required
-                />
+            <div className="auth-field-group">
+              <label className="auth-label" htmlFor="signup-email">Email address</label>
+              <div className={`auth-field${formErrors.email ? " auth-field--invalid" : ""}`}>
+                <Mail className="auth-field__icon" size={18} aria-hidden="true" />
+                <input id="signup-email" name="email" type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" value={email} onChange={(event) => updateField("email", event.target.value, setEmail)} aria-invalid={Boolean(formErrors.email)} aria-describedby={formErrors.email ? "signup-email-error" : undefined} />
               </div>
-              {formErrors.email && (
-                <p className="mt-2 text-sm text-red-400">{formErrors.email}</p>
-              )}
+              {formErrors.email && <p id="signup-email-error" className="auth-field-error">{formErrors.email}</p>}
             </div>
 
-            {/* Password Field */}
-            <div>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Create password"
-                  className="w-full pl-12 pr-12 py-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
-                  required
-                  onChange={(e) => handlePasswordChange(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
+            <div className="auth-field-group">
+              <label className="auth-label" htmlFor="signup-password">Create password</label>
+              <div className={`auth-field${formErrors.password ? " auth-field--invalid" : ""}`}>
+                <LockKeyhole className="auth-field__icon" size={18} aria-hidden="true" />
+                <input id="signup-password" name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="At least 8 characters" value={password} onChange={(event) => updateField("password", event.target.value, setPassword)} aria-invalid={Boolean(formErrors.password)} aria-describedby="password-guidance signup-password-strength" />
+                <button className="auth-reveal" type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
               </div>
-
-              {/* Password Strength Meter */}
-              {passwordStrength > 0 && (
-                <div className="mt-2">
-                  <div className="flex gap-1 mb-1">
-                    {[1, 2, 3, 4].map((index) => (
-                      <div
-                        key={index}
-                        className={`h-1 flex-1 rounded-full transition-all ${
-                          index <= passwordStrength
-                            ? getStrengthColor(passwordStrength)
-                            : "bg-gray-700"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    {passwordStrength <= 2
-                      ? "Weak"
-                      : passwordStrength === 3
-                        ? "Good"
-                        : "Strong"}{" "}
-                    password
-                  </p>
+              <div id="signup-password-strength" className="auth-strength" aria-live="polite">
+                <div className="auth-strength__bars" aria-hidden="true">
+                  {[1, 2, 3, 4].map((part) => <span className={part <= passwordStrength ? `is-active strength-${passwordStrength}` : ""} key={part} />)}
                 </div>
-              )}
-
-              {formErrors.password && (
-                <p className="mt-2 text-sm text-red-400">
-                  {formErrors.password}
-                </p>
-              )}
-            </div>
-
-            {/* Confirm Password Field */}
-            <div>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm password"
-                  className="w-full pl-12 pr-12 py-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
+                <span>{password ? ["Getting started", "Fair", "Good", "Strong"][Math.max(0, passwordStrength - 1)] : ""}</span>
               </div>
-              {formErrors.confirmPassword && (
-                <p className="mt-2 text-sm text-red-400">
-                  {formErrors.confirmPassword}
-                </p>
-              )}
+              <p className="auth-field-hint" id="password-guidance">Use 8+ characters. Adding a number or symbol makes it stronger.</p>
+              {formErrors.password && <p className="auth-field-error">{formErrors.password}</p>}
             </div>
 
-            {/* Terms and Conditions */}
-            <div className="space-y-4">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="w-4 h-4 mt-1 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900"
-                />
-                <span className="text-sm text-gray-300">
-                  I agree to the{" "}
-                  <button
-                    type="button"
-                    className="text-blue-400 hover:text-blue-300"
-                  >
-                    Terms of Service
-                  </button>{" "}
-                  and{" "}
-                  <button
-                    type="button"
-                    className="text-blue-400 hover:text-blue-300"
-                  >
-                    Privacy Policy
-                  </button>
-                </span>
+            <div className="auth-field-group">
+              <label className="auth-label" htmlFor="signup-confirm-password">Confirm password</label>
+              <div className={`auth-field${formErrors.confirmPassword ? " auth-field--invalid" : ""}`}>
+                <LockKeyhole className="auth-field__icon" size={18} aria-hidden="true" />
+                <input id="signup-confirm-password" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} autoComplete="new-password" placeholder="Enter it once more" value={confirmPassword} onChange={(event) => updateField("confirmPassword", event.target.value, setConfirmPassword)} aria-invalid={Boolean(formErrors.confirmPassword)} aria-describedby={formErrors.confirmPassword ? "signup-confirm-error" : undefined} />
+                <button className="auth-reveal" type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"}>{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+              </div>
+              {formErrors.confirmPassword && <p id="signup-confirm-error" className="auth-field-error">{formErrors.confirmPassword}</p>}
+            </div>
+
+            <div className="auth-consent-wrap">
+              <label className="auth-check auth-check--terms">
+                <input type="checkbox" checked={agreedToTerms} onChange={(event) => { setAgreedToTerms(event.target.checked); setFormErrors((current) => ({ ...current, terms: "" })); }} aria-invalid={Boolean(formErrors.terms)} aria-describedby={formErrors.terms ? "signup-terms-error" : undefined} />
+                <span>I agree to EduZone’s terms and privacy practices.</span>
               </label>
-              {formErrors.terms && (
-                <p className="text-sm text-red-400">{formErrors.terms}</p>
-              )}
+              {formErrors.terms && <p id="signup-terms-error" className="auth-field-error">{formErrors.terms}</p>}
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading || !agreedToTerms}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-              className="w-full py-4 bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                <>
-                  Create Account
-                  <ArrowRight
-                    className={`w-5 h-5 transition-transform ${isHovered ? "translate-x-1" : ""}`}
-                  />
-                </>
-              )}
+            <button className="auth-submit" type="submit" disabled={loading}>
+              {loading ? <><LoaderCircle size={18} className="animate-spin" /> Creating your account…</> : <>Create account <ArrowRight size={18} aria-hidden="true" /></>}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="flex items-center my-8">
-            <div className="flex-1 h-px bg-gray-700"></div>
-            <span className="px-4 text-sm text-gray-400">Or sign up with</span>
-            <div className="flex-1 h-px bg-gray-700"></div>
+          <div className="auth-card__footer">
+            <span>Already have an account?</span>
+            <Link to="/login">Sign in</Link>
           </div>
-
-          {/* Social Sign Up */}
-          <SocialLogin />
-
-          {/* Login Link */}
-          <div className="text-center">
-            <p className="text-gray-400">
-              Already have an account?{" "}
-              <button
-                onClick={() => navigate("/login")}
-                className="text-blue-400 hover:text-blue-300 font-semibold transition-colors"
-              >
-                Sign in
-              </button>
-            </p>
-          </div>
-        </div>
+          <p className="auth-privacy-note"><Check size={14} aria-hidden="true" /> Your account is created securely with EduZone.</p>
+        </section>
       </div>
     </div>
   );

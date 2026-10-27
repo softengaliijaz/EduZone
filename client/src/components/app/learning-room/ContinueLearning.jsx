@@ -30,24 +30,19 @@ const ContinueLearning = () => {
 
       try {
         setLoading(true);
-        const response = await axiosInstance.get("/api/lessons");
+        const response = await axiosInstance.get("/api/lessons", {
+          params: { courseId: course._id },
+        });
         const allLessons = response?.data?.data || [];
 
-        const courseLessons = allLessons
-          .filter(
-            (lesson) =>
-              lesson?.courseId?._id === course._id || lesson?.courseId === course._id,
-          )
-          .map((lesson) => ({
+        const courseLessons = allLessons.map((lesson) => ({
             id: lesson._id,
             title: lesson.title,
             content: lesson.content || "No description available.",
-            videoUrl:
-              lesson.videoUrl ||
-              "https://www.youtube.com/embed/ysz5S6PUM-U?rel=0&modestbranding=1",
+            videoUrl: lesson.videoUrl || null,
             duration: lesson.duration || "00:00",
             completed: false,
-          }));
+        }));
 
         const completedCount = Math.floor(
           (Math.max(0, Math.min(100, initialProgress)) / 100) * courseLessons.length,
@@ -60,7 +55,7 @@ const ContinueLearning = () => {
 
         setLessons(hydrated);
         setError("");
-      } catch (_error) {
+      } catch {
         setError("Failed to load lessons for this course.");
       } finally {
         setLoading(false);
@@ -84,7 +79,7 @@ const ContinueLearning = () => {
         progress: nextProgress,
         completed: nextProgress >= 100,
       });
-    } catch (_error) {
+    } catch {
       // Keep UX optimistic.
     }
   };
@@ -153,15 +148,21 @@ const ContinueLearning = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-black rounded-2xl overflow-hidden shadow">
-            <iframe
-              src={currentLesson.videoUrl}
-              title={currentLesson.title}
-              className="w-full aspect-video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
+          {currentLesson.videoUrl ? (
+            <div className="lesson-player">
+              <iframe
+                src={currentLesson.videoUrl}
+                title={`${currentLesson.title} video`}
+                className="w-full aspect-video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <div className="lesson-player lesson-player--empty" role="status">
+              No video is attached to this lesson. Use the lesson notes below to continue.
+            </div>
+          )}
 
           <div className="bg-white rounded-2xl p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-3">
@@ -185,6 +186,8 @@ const ContinueLearning = () => {
               </button>
               <button
                 onClick={markCompleted}
+                disabled={currentLesson.completed}
+                aria-pressed={currentLesson.completed}
                 className="flex-1 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
               >
                 {currentLesson.completed ? "Completed" : "Mark Completed"}

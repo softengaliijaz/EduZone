@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from "../../../services/axios";
+import { getUploadUrl } from "../../../utils/constants";
 import {
   enrollInCourse,
   fetchEnrolledCourses,
 } from "../../../features/course/enrollSlice";
-import { AppFooter } from "../../../components/layout/Footer";
 import LikeFeature from "../../../components/app/post-interactions/LikeFeature";
 import CommentFeature from "../../../components/app/post-interactions/CommentFeature";
 import {
@@ -35,14 +35,15 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Loader from "../../../components/common/Loader";
+import { getReadableParagraphs } from "../../../utils/contentFormatting";
 
-const CourseDetail = () => {
+const CourseDetail = ({ workspace = false, managementView = false }) => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const { user } = useSelector((state) => state.auth);
-  const { status, error, data } = useSelector((state) => state.enroll);
+  const { status } = useSelector((state) => state.enroll);
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -83,7 +84,32 @@ const CourseDetail = () => {
   }, [id]);
 
   useEffect(() => {
-    if (user?._id) {
+    if (!id) return undefined;
+    let active = true;
+
+    const refreshEnrollmentCount = async () => {
+      if (document.hidden) return;
+      try {
+        const { data } = await axiosInstance.get(`/api/courses/${id}`);
+        if (active && Number.isFinite(data?.data?.students)) {
+          setStats((current) => ({ ...current, students: data.data.students }));
+        }
+      } catch {
+        // Keep the last known count; the main course request handles load errors.
+      }
+    };
+
+    const intervalId = window.setInterval(refreshEnrollmentCount, 15000);
+    document.addEventListener("visibilitychange", refreshEnrollmentCount);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", refreshEnrollmentCount);
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (user?._id && !managementView) {
       dispatch(fetchEnrolledCourses(user._id)).then((res) => {
         if (fetchEnrolledCourses.fulfilled.match(res)) {
           const enrolledCourses = res.payload || [];
@@ -95,7 +121,7 @@ const CourseDetail = () => {
         }
       });
     }
-  }, [user, id, dispatch]);
+  }, [user, id, dispatch, managementView]);
 
   const handleEnroll = async () => {
     if (!user) {
@@ -122,6 +148,9 @@ const CourseDetail = () => {
       if (enrollInCourse.fulfilled.match(res)) {
         toast.success(`🎉 Successfully enrolled in ${course.title}!`);
         setEnrolled(true);
+        if (Number.isFinite(res.payload?.studentCount)) {
+          setStats((current) => ({ ...current, students: res.payload.studentCount }));
+        }
         setShowEnrollModal(false);
 
         // Redirect to course content after 2 seconds
@@ -160,7 +189,7 @@ const CourseDetail = () => {
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch (err) {
+      } catch {
         // User cancelled share
       }
     } else {
@@ -187,10 +216,16 @@ const CourseDetail = () => {
             The course you're looking for doesn't exist or has been removed.
           </p>
           <button
-            onClick={() => navigate("/courses/courses-list")}
+            onClick={() => navigate(managementView
+              ? user?.user_type === "instructor"
+                ? "/instructor/courses-management/get-all-courses"
+                : "/admin/courses-management/get-all-courses"
+              : workspace
+                ? "/user/explore-courses"
+                : "/courses/courses-list")}
             className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
           >
-            Browse Courses
+            {managementView ? "Back to course management" : "Browse Courses"}
           </button>
         </div>
       </div>
@@ -200,7 +235,7 @@ const CourseDetail = () => {
   return (
     <>
       {/* Enrollment Modal */}
-      {showEnrollModal && (
+      {!managementView && showEnrollModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-in slide-in-from-bottom-2">
             <div className="text-center mb-6">
@@ -289,9 +324,9 @@ const CourseDetail = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className={`grid grid-cols-1 ${managementView ? "lg:grid-cols-1" : "lg:grid-cols-3"} gap-8`}>
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className={`${managementView ? "" : "lg:col-span-2 "}space-y-8`}>
               {/* Course Overview */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                 <div className="flex items-center gap-2 mb-6">
@@ -301,8 +336,12 @@ const CourseDetail = () => {
                   </h2>
                 </div>
 
-                <div className="prose max-w-none text-gray-700 leading-relaxed">
-                  {course.description}
+                <div className="prose max-w-[78ch] break-words text-gray-700 leading-8">
+                  {getReadableParagraphs(course.description).map((paragraph, index) => (
+                    <p className="mb-5 last:mb-0 whitespace-pre-wrap" key={`course-description-${index}`}>
+                      {paragraph}
+                    </p>
+                  ))}
                 </div>
 
                 {/* Quick Stats */}
@@ -352,7 +391,7 @@ const CourseDetail = () => {
                   {course.image ? (
                     <>
                       <img
-                        src={`${import.meta.env.VITE_BASE_URL}/uploads/${course.image}`}
+                        src={getUploadUrl(course.image)}
                         alt={course.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
@@ -414,7 +453,7 @@ const CourseDetail = () => {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Enrollment Card */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sticky top-6">
+              {!managementView && <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sticky top-6">
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-full text-sm font-semibold mb-4">
                     <Zap className="w-4 h-4" />
@@ -490,7 +529,7 @@ const CourseDetail = () => {
                     </span>
                   </div>
                 </div>
-              </div>
+              </div>}
 
               {/* Instructor Info */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
@@ -558,7 +597,6 @@ const CourseDetail = () => {
           </div>
         </div>
       </div>
-      <AppFooter />
     </>
   );
 };

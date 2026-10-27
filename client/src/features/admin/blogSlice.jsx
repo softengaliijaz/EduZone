@@ -10,12 +10,16 @@ export const createBlogThunk = createAsyncThunk(
   async (formData, thunkAPI) => {
     try {
       const response = await axiosInstance.post("/api/blogs", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        // Let the browser set the multipart boundary for FormData.
       });
       return response.data.data;
     } catch (error) {
       return thunkAPI.rejectWithValue(
-        error.response?.data?.message || "Error creating blog",
+        error.response?.data?.details ||
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          error.message ||
+          "Error creating blog",
       );
     }
   },
@@ -54,7 +58,7 @@ export const updateBlog = createAsyncThunk(
   async ({ id, blogData }, thunkAPI) => {
     try {
       const response = await axiosInstance.put(`/api/blogs/${id}`, blogData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        // Let the browser set the multipart boundary for FormData.
       });
       return response.data.data;
     } catch (error) {
@@ -136,6 +140,7 @@ const blogSlice = createSlice({
     builder
       .addCase(createBlogThunk.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(createBlogThunk.fulfilled, (state, action) => {
         state.loading = false;
