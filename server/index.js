@@ -15,7 +15,7 @@ import cookieParser from "cookie-parser";
 import connectToDatabase from "./src/config/server.js";
 import registeredRouters from "./src/routes/index.js";
 import { globalErrorHandler } from "./src/middlewares/global_error_handler.js";
-import env from "./src/config/env.js";
+import env, { getProductionEnvIssues } from "./src/config/env.js";
 import {
   createRateLimiter,
   sanitizeBody,
@@ -25,16 +25,11 @@ import {
 const app = express();
 const PORT = env.port;
 
-if (
-  env.nodeEnv === "production" &&
-  (!env.dbUrl ||
-    !env.hasDistinctTokenSecrets ||
-    !process.env.CLIENT_URL ||
-    !process.env.BASE_URL)
-) {
-  throw new Error(
-    "Production requires DB_CONFIGURATION, distinct access/refresh token secrets, CLIENT_URL, and BASE_URL.",
-  );
+if (env.nodeEnv === "production") {
+  const issues = getProductionEnvIssues();
+  if (issues.length > 0) {
+    throw new Error(`Invalid production environment: ${issues.join("; ")}.`);
+  }
 }
 
 const clientUrl = env.clientUrl;

@@ -5,6 +5,41 @@ const toNumber = (value, fallback) => {
 
 const trimSlashes = (value = "") => value.replace(/\/+$/, "");
 
+export const getProductionEnvIssues = (variables = process.env) => {
+  const issues = [];
+
+  if (!variables.DB_CONFIGURATION?.trim()) {
+    issues.push("DB_CONFIGURATION is missing");
+  }
+
+  const accessTokenSecret = variables.ACCESS_TOKEN_SECRET || "";
+  const refreshTokenSecret = variables.REFRESH_TOKEN_SECRET || "";
+
+  if (!accessTokenSecret.trim()) {
+    issues.push("ACCESS_TOKEN_SECRET is missing");
+  }
+  if (!refreshTokenSecret.trim()) {
+    issues.push("REFRESH_TOKEN_SECRET is missing");
+  }
+  if (
+    accessTokenSecret &&
+    refreshTokenSecret &&
+    accessTokenSecret === refreshTokenSecret
+  ) {
+    issues.push(
+      "ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET must be different",
+    );
+  }
+  if (!variables.CLIENT_URL?.trim()) {
+    issues.push("CLIENT_URL is missing");
+  }
+  if (!variables.BASE_URL?.trim()) {
+    issues.push("BASE_URL is missing");
+  }
+
+  return issues;
+};
+
 const env = {
   get nodeEnv() {
     return process.env.NODE_ENV || "development";
