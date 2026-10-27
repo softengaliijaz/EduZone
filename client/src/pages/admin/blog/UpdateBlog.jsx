@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import useConfirmDialog from "../../../components/common/useConfirmDialog";
+import ImageWithFallback from "../../../components/common/ImageWithFallback";
 import { getUploadUrl } from "../../../utils/constants";
 
 const UpdateBlogPage = () => {
@@ -80,7 +81,7 @@ const UpdateBlogPage = () => {
         category: blog.category || "",
       });
 
-      const imageUrl = getUploadUrl(blog.image);
+      const imageUrl = getUploadUrl(blog.imageUrl || blog.image);
 
       if (imageUrl) {
         setPreview(imageUrl);
@@ -393,7 +394,7 @@ const UpdateBlogPage = () => {
                         Current Image
                       </div>
                       <div className="relative rounded-xl overflow-hidden border border-gray-200 max-w-xs">
-                        <img
+                        <ImageWithFallback
                           src={preview}
                           alt="Current blog image"
                           className="w-full h-48 object-cover"

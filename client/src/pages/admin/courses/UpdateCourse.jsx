@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getUploadUrl } from "../../../utils/constants";
+import ImageWithFallback from "../../../components/common/ImageWithFallback";
 
 const UpdateCoursePage = () => {
   const { id } = useParams();
@@ -88,7 +89,7 @@ const UpdateCoursePage = () => {
           category: course.category || "",
         });
 
-        const imageUrl = course.imageUrl || getUploadUrl(course.image);
+        const imageUrl = getUploadUrl(course.imageUrl || course.image);
 
         if (imageUrl) {
           setPreview(imageUrl);
@@ -402,7 +403,7 @@ const UpdateCoursePage = () => {
               {preview && (
                 <div>
                   <div className="relative rounded-xl overflow-hidden border border-gray-200 max-w-xs">
-                    <img
+                    <ImageWithFallback
                       src={preview}
                       alt="Course Thumbnail Preview"
                       className="w-full h-48 object-cover"
@@ -504,4 +505,3 @@ const UpdateCoursePage = () => {
 };
 
 export default UpdateCoursePage;
-

@@ -42,7 +42,6 @@ const HomePage = () => {
 
       {/* Contact Us Section */}
       <ContactUs />
-
     </>
   );
 };

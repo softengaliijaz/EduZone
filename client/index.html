@@ -13,14 +13,6 @@
       name="description"
       content="EduZone is a comprehensive Learning Management System (LMS) designed to provide a seamless learning experience for students and educators."
     />
-    <script>
-      (() => {
-        const stored = localStorage.getItem("eduzone-theme");
-        const theme = stored || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-        document.documentElement.dataset.theme = theme;
-        document.documentElement.style.colorScheme = theme;
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

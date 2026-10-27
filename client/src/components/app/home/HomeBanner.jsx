@@ -8,7 +8,7 @@ const HomeBanner = () => {
   const user = useSelector((state) => state.auth.user);
 
   return (
-    <section className="relative min-h-screen bg-gradient-to-br from-gray-900 via-[#1C1E53] to-purple-900 text-white overflow-hidden">
+    <section className="home-hero relative min-h-screen text-white overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0">
         {/* Floating gradient orbs */}

@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, FileText, Plus, RotateCw } from "lucide-react";
 import { getUploadUrl } from "../../utils/constants";
+import ImageWithFallback from "../common/ImageWithFallback";
 
 const AdminDashboardBlogs = ({ blogs = [], loading, error, onRetry }) => (
   <section className="admin-panel" aria-labelledby="admin-articles-title">
@@ -29,11 +30,11 @@ const AdminDashboardBlogs = ({ blogs = [], loading, error, onRetry }) => (
         {blogs.slice(0, 4).map((blog) => {
           const rawDate = blog.publish_date || blog.createdAt;
           const date = rawDate ? new Date(rawDate) : null;
-          const imageUrl = blog.imageUrl || getUploadUrl(blog.image);
+          const imageUrl = getUploadUrl(blog.imageUrl || blog.image);
           return (
             <article className="admin-list-row admin-article-row" key={blog._id}>
               <span className="admin-article-row__image">
-                {imageUrl ? <img src={imageUrl} alt="" loading="lazy" /> : <FileText size={17} aria-hidden="true" />}
+                {imageUrl ? <ImageWithFallback src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" /> : <FileText size={17} aria-hidden="true" />}
               </span>
               <div className="admin-list-row__main">
                 <strong>{blog.title || "Untitled article"}</strong>

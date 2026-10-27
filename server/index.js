@@ -17,6 +17,10 @@ import registeredRouters from "./src/routes/index.js";
 import { globalErrorHandler } from "./src/middlewares/global_error_handler.js";
 import env, { getProductionEnvIssues } from "./src/config/env.js";
 import {
+  ensureUploadsDirectory,
+  getUploadsDirectory,
+} from "./src/config/uploads.js";
+import {
   createRateLimiter,
   sanitizeBody,
   securityHeaders,
@@ -24,6 +28,8 @@ import {
 
 const app = express();
 const PORT = env.port;
+
+ensureUploadsDirectory();
 
 if (env.nodeEnv === "production") {
   const issues = getProductionEnvIssues();
@@ -67,7 +73,7 @@ app.use(sanitizeBody);
 /* ===================== STATIC ===================== */
 app.use(
   "/uploads",
-  express.static(path.join(__dirname, "uploads"), {
+  express.static(getUploadsDirectory(), {
     maxAge: "7d",
     setHeaders: (res) => {
       res.setHeader("Cache-Control", "public, max-age=604800");

@@ -36,6 +36,7 @@ import {
 import { toast } from "react-hot-toast";
 import Loader from "../../../components/common/Loader";
 import { getReadableParagraphs } from "../../../utils/contentFormatting";
+import ImageWithFallback from "../../../components/common/ImageWithFallback";
 
 const CourseDetail = ({ workspace = false, managementView = false }) => {
   const { id } = useParams();
@@ -149,7 +150,10 @@ const CourseDetail = ({ workspace = false, managementView = false }) => {
         toast.success(`🎉 Successfully enrolled in ${course.title}!`);
         setEnrolled(true);
         if (Number.isFinite(res.payload?.studentCount)) {
-          setStats((current) => ({ ...current, students: res.payload.studentCount }));
+          setStats((current) => ({
+            ...current,
+            students: res.payload.studentCount,
+          }));
         }
         setShowEnrollModal(false);
 
@@ -216,13 +220,17 @@ const CourseDetail = ({ workspace = false, managementView = false }) => {
             The course you're looking for doesn't exist or has been removed.
           </p>
           <button
-            onClick={() => navigate(managementView
-              ? user?.user_type === "instructor"
-                ? "/instructor/courses-management/get-all-courses"
-                : "/admin/courses-management/get-all-courses"
-              : workspace
-                ? "/user/explore-courses"
-                : "/courses/courses-list")}
+            onClick={() =>
+              navigate(
+                managementView
+                  ? user?.user_type === "instructor"
+                    ? "/instructor/courses-management/get-all-courses"
+                    : "/admin/courses-management/get-all-courses"
+                  : workspace
+                    ? "/user/explore-courses"
+                    : "/courses/courses-list",
+              )
+            }
             className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
           >
             {managementView ? "Back to course management" : "Browse Courses"}
@@ -324,9 +332,13 @@ const CourseDetail = ({ workspace = false, managementView = false }) => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className={`grid grid-cols-1 ${managementView ? "lg:grid-cols-1" : "lg:grid-cols-3"} gap-8`}>
+          <div
+            className={`grid grid-cols-1 ${managementView ? "lg:grid-cols-1" : "lg:grid-cols-3"} gap-8`}
+          >
             {/* Main Content */}
-            <div className={`${managementView ? "" : "lg:col-span-2 "}space-y-8`}>
+            <div
+              className={`${managementView ? "" : "lg:col-span-2 "}space-y-8`}
+            >
               {/* Course Overview */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                 <div className="flex items-center gap-2 mb-6">
@@ -337,11 +349,16 @@ const CourseDetail = ({ workspace = false, managementView = false }) => {
                 </div>
 
                 <div className="prose max-w-[78ch] break-words text-gray-700 leading-8">
-                  {getReadableParagraphs(course.description).map((paragraph, index) => (
-                    <p className="mb-5 last:mb-0 whitespace-pre-wrap" key={`course-description-${index}`}>
-                      {paragraph}
-                    </p>
-                  ))}
+                  {getReadableParagraphs(course.description).map(
+                    (paragraph, index) => (
+                      <p
+                        className="mb-5 last:mb-0 whitespace-pre-wrap"
+                        key={`course-description-${index}`}
+                      >
+                        {paragraph}
+                      </p>
+                    ),
+                  )}
                 </div>
 
                 {/* Quick Stats */}
@@ -388,10 +405,10 @@ const CourseDetail = ({ workspace = false, managementView = false }) => {
               {/* Course Image */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                 <div className="relative h-64 md:h-80 lg:h-96">
-                  {course.image ? (
+                  {getUploadUrl(course.imageUrl || course.image) ? (
                     <>
-                      <img
-                        src={getUploadUrl(course.image)}
+                      <ImageWithFallback
+                        src={getUploadUrl(course.imageUrl || course.image)}
                         alt={course.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
@@ -453,83 +470,86 @@ const CourseDetail = ({ workspace = false, managementView = false }) => {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Enrollment Card */}
-              {!managementView && <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sticky top-6">
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-full text-sm font-semibold mb-4">
-                    <Zap className="w-4 h-4" />
-                    INSTANT ACCESS
+              {!managementView && (
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sticky top-6">
+                  <div className="text-center mb-6">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-full text-sm font-semibold mb-4">
+                      <Zap className="w-4 h-4" />
+                      INSTANT ACCESS
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                      Start Learning Today
+                    </h3>
+                    <p className="text-gray-600 text-sm">
+                      Join {stats.students.toLocaleString()}+ successful
+                      students
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                    Start Learning Today
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Join {stats.students.toLocaleString()}+ successful students
-                  </p>
-                </div>
 
-                <button
-                  onClick={handleEnroll}
-                  disabled={enrolled || status === "loading"}
-                  className={`w-full py-4 rounded-xl font-semibold text-lg transition-all ${
-                    enrolled
-                      ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200 cursor-not-allowed"
-                      : "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-                  }`}
-                >
-                  {enrolled ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <CheckCircle className="w-5 h-5" />
-                      Enrolled ✓
-                    </span>
-                  ) : status === "loading" ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Processing...
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      <BookOpen className="w-5 h-5" />
-                      Enroll Now
-                    </span>
-                  )}
-                </button>
-
-                {enrolled && (
                   <button
-                    onClick={() => navigate("/user/learning-room")}
-                    className="w-full mt-4 py-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-xl hover:shadow-lg transition"
+                    onClick={handleEnroll}
+                    disabled={enrolled || status === "loading"}
+                    className={`w-full py-4 rounded-xl font-semibold text-lg transition-all ${
+                      enrolled
+                        ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200 cursor-not-allowed"
+                        : "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                    }`}
                   >
-                    Go to Dashboard
+                    {enrolled ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <CheckCircle className="w-5 h-5" />
+                        Enrolled ✓
+                      </span>
+                    ) : status === "loading" ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Processing...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <BookOpen className="w-5 h-5" />
+                        Enroll Now
+                      </span>
+                    )}
                   </button>
-                )}
 
-                <div className="space-y-4 mt-6 pt-6 border-t border-gray-100">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Course Level</span>
-                    <span className="font-semibold text-gray-900">
-                      {stats.level}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Duration</span>
-                    <span className="font-semibold text-gray-900">
-                      {stats.duration}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Certificate</span>
-                    <span className="font-semibold text-green-600">
-                      Included
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Access</span>
-                    <span className="font-semibold text-green-600">
-                      Lifetime
-                    </span>
+                  {enrolled && (
+                    <button
+                      onClick={() => navigate("/user/learning-room")}
+                      className="w-full mt-4 py-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-xl hover:shadow-lg transition"
+                    >
+                      Go to Dashboard
+                    </button>
+                  )}
+
+                  <div className="space-y-4 mt-6 pt-6 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Course Level</span>
+                      <span className="font-semibold text-gray-900">
+                        {stats.level}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Duration</span>
+                      <span className="font-semibold text-gray-900">
+                        {stats.duration}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Certificate</span>
+                      <span className="font-semibold text-green-600">
+                        Included
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Access</span>
+                      <span className="font-semibold text-green-600">
+                        Lifetime
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>}
+              )}
 
               {/* Instructor Info */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">

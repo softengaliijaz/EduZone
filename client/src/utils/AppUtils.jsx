@@ -20,10 +20,9 @@ import {
 // ============================================
 
 /**
- * List of prominent organizations/companies (for partnership showcase)
- * Each object contains organization name and a brief description
+ * Shared partner records for both homepage partnership showcases.
  */
-export const organizations = [
+export const partnersData = [
   { name: "Al Jazeera", description: "Global media network" },
   {
     name: "Qatar Foundation",
@@ -37,13 +36,6 @@ export const organizations = [
   { name: "NEOM", description: "Future city development" },
   { name: "Mubadala", description: "Investment and innovation" },
   { name: "KAUST", description: "Scientific research" },
-];
-
-/**
- * Partner companies for statistics section with gradient color classes
- * Used in partners/statistics display components
- */
-export const statisticPartnersData = [
   {
     name: "Lorem Innovations",
     category: "Technology Solutions",
@@ -75,6 +67,11 @@ export const statisticPartnersData = [
     color: "from-indigo-500 to-blue-400",
   },
 ];
+
+export const organizations = partnersData.filter((partner) => !partner.category);
+export const statisticPartnersData = partnersData.filter(
+  (partner) => partner.category,
+);
 
 // ============================================
 // SECTION 2: PLATFORM STATISTICS
@@ -319,4 +316,3 @@ export const contactUsScreenData = [
     color: "from-orange-500 to-yellow-400",
   },
 ];
-

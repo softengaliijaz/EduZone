@@ -20,6 +20,7 @@ import {
 import { toast } from "react-hot-toast";
 import useConfirmDialog from "../../../components/common/useConfirmDialog";
 import { getUploadUrl } from "../../../utils/constants";
+import ImageWithFallback from "../../../components/common/ImageWithFallback";
 
 const BlogListPage = () => {
   const dispatch = useDispatch();
@@ -61,7 +62,7 @@ const BlogListPage = () => {
   };
 
   const getImageUrl = (blog) =>
-    getUploadUrl(blog.image);
+    getUploadUrl(blog.imageUrl || blog.image);
 
   // Get unique categories
   const categories = [
@@ -227,8 +228,8 @@ const BlogListPage = () => {
                 <div className="p-4">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
-                      {blog.image ? (
-                        <img
+                      {getImageUrl(blog) ? (
+                        <ImageWithFallback
                           src={getImageUrl(blog)}
                           alt={blog.title}
                           className="w-16 h-16 rounded-lg object-cover"
@@ -334,8 +335,8 @@ const BlogListPage = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex-shrink-0">
-                            {blog.image ? (
-                              <img
+                            {getImageUrl(blog) ? (
+                              <ImageWithFallback
                                 src={getImageUrl(blog)}
                                 alt={blog.title}
                                 className="w-12 h-12 rounded-lg object-cover"

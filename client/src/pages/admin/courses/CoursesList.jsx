@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getUploadUrl } from "../../../utils/constants";
+import ImageWithFallback from "../../../components/common/ImageWithFallback";
 import useConfirmDialog from "../../../components/common/useConfirmDialog";
 
 const CoursesListPage = () => {
@@ -70,8 +71,7 @@ const CoursesListPage = () => {
     isCreatorObject(creator) ? creator?.name || "Unknown" : "Unknown";
 
   const getImageUrl = (course) =>
-    course.imageUrl ||
-    getUploadUrl(course.image);
+    getUploadUrl(course.imageUrl || course.image);
 
   /** filter only current user's courses */
   const visibleCourses = isAdmin ? courses : courses?.filter((course) =>
@@ -190,8 +190,8 @@ const CoursesListPage = () => {
                 <div className="p-4">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
-                      {course.image ? (
-                        <img
+                      {getImageUrl(course) ? (
+                        <ImageWithFallback
                           src={getImageUrl(course)}
                           alt={course.title}
                           className="w-16 h-16 rounded-lg object-cover"
@@ -286,8 +286,8 @@ const CoursesListPage = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex-shrink-0">
-                            {course.image ? (
-                              <img
+                            {getImageUrl(course) ? (
+                              <ImageWithFallback
                                 src={getImageUrl(course)}
                                 alt={course.title}
                                 className="w-12 h-12 rounded-lg object-cover"
@@ -363,4 +363,3 @@ const CoursesListPage = () => {
 };
 
 export default CoursesListPage;
-

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { AlertCircle, ArrowRight, BookOpen, Clock3, Play, RotateCw } from "lucide-react";
 import { fetchEnrolledCourses } from "../../../features/course/enrollSlice";
 import { getUploadUrl } from "../../../utils/constants";
+import ImageWithFallback from "../../common/ImageWithFallback";
 
 const EnrolledCoursesCard = () => {
   const dispatch = useDispatch();
@@ -47,11 +48,11 @@ const EnrolledCoursesCard = () => {
       {courses.map((enrollment) => {
         const course = enrollment.courseId || {};
         const progress = Math.min(100, Math.max(0, Number(enrollment.progress) || 0));
-        const image = course.imageUrl || getUploadUrl(course.image);
+        const image = getUploadUrl(course.imageUrl || course.image);
         return (
           <article className="enrolled-course" key={enrollment._id}>
             <Link className="enrolled-course__image" to={`/user/courses/${course._id}`} aria-label={`View ${course.title || "course"}`}>
-              {image ? <img src={image} alt="" loading="lazy" /> : <span>{course.title?.charAt(0)?.toUpperCase() || <BookOpen size={24} aria-hidden="true" />}</span>}
+              {image ? <ImageWithFallback src={image} alt="" className="h-full w-full object-cover" loading="lazy" /> : <span>{course.title?.charAt(0)?.toUpperCase() || <BookOpen size={24} aria-hidden="true" />}</span>}
             </Link>
             <div className="enrolled-course__body">
               <p className="enrolled-course__category">{course.category || "Enrolled course"}{course.level ? ` · ${course.level}` : ""}</p>

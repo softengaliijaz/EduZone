@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import ImageWithFallback from "../../../components/common/ImageWithFallback";
 
 const CreateBlogPage = () => {
   const dispatch = useDispatch();
@@ -307,7 +308,7 @@ const CreateBlogPage = () => {
                     Preview
                   </div>
                   <div className="relative rounded-xl overflow-hidden border border-gray-200 max-w-xs">
-                    <img
+                    <ImageWithFallback
                       src={preview}
                       alt="Blog image preview"
                       className="w-full h-48 object-cover"

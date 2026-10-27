@@ -103,7 +103,7 @@ Local development defaults to `http://localhost:5000`. `VITE_BASE_URL` is option
 - Set `NODE_ENV=production`, `DB_CONFIGURATION`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `CLIENT_URL`, and `BASE_URL`. Use different long random values for the two token secrets. `BASE_URL` is the public Render service origin and `CLIENT_URL` is the exact Vercel site origin.
 - The server package declares Node.js `>=20 <25`; keep the Render runtime within that range.
 - Configure `/health` as the service health check. It returns success only while MongoDB is connected.
-- Uploaded files currently go to `server/uploads`. Render's filesystem is ephemeral by default. Attach a persistent disk mounted at `/opt/render/project/src/server/uploads`, or migrate uploads to durable object storage, before relying on production uploads. The app has no cloud object-storage adapter yet.
+- Uploaded files default to `server/uploads`; set `UPLOADS_DIR` to the mounted path if your persistent disk is mounted elsewhere. Render's filesystem is ephemeral by default, so attach a persistent disk and set `UPLOADS_DIR=/opt/render/project/src/server/uploads` (or use the exact mount path) before relying on production uploads. Both upload handling and static file serving use this setting. Existing image files missing from the Render instance must be restored to the disk or re-uploaded; the database stores their filenames, not the file contents. The app has no cloud object-storage adapter yet.
 
 ### Vercel frontend
 

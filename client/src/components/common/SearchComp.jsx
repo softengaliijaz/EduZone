@@ -56,7 +56,7 @@ export const SearchComp = ({ onSearch, onFilter, categories = [], resetSignal = 
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 w-full md:w-auto">
+      <div className="flex flex-wrap gap-4 w-full md:w-auto">
         <div className="relative">
           <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <select

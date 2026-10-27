@@ -1,14 +1,11 @@
 import multer from "multer";
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { getUploadsDirectory } from "../config/uploads.js";
 
 // config of storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, "../../uploads/"));
+    cb(null, getUploadsDirectory());
   },
   // cb > callback
   filename: function (req, file, cb) {

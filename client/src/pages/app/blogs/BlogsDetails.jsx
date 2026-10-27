@@ -30,9 +30,10 @@ import {
   Sparkles,
   MessageCircle,
 } from "lucide-react";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import axiosInstance from "../../../services/axios";
 import { getReadableParagraphs } from "../../../utils/contentFormatting";
+import ImageWithFallback from "../../../components/common/ImageWithFallback";
 
 const BlogsDetails = () => {
   const dispatch = useDispatch();
@@ -288,7 +289,6 @@ const BlogsDetails = () => {
 
   return (
     <>
-      <Toaster position="top-right" />
 
       {/* Reading Progress Bar */}
       <div className="fixed top-0 left-0 right-0 h-1 bg-gray-200 z-50">
@@ -405,10 +405,10 @@ const BlogsDetails = () => {
 
           {/* Featured Image */}
           <div className="relative rounded-3xl overflow-hidden mb-12 shadow-2xl group">
-            {blogData.image ? (
+            {getUploadUrl(blogData.imageUrl || blogData.image) ? (
               <>
-                <img
-                  src={getUploadUrl(blogData.image)}
+                <ImageWithFallback
+                  src={getUploadUrl(blogData.imageUrl || blogData.image)}
                   alt={blogData.title}
                   className="w-full h-[400px] md:h-[500px] object-cover group-hover:scale-105 transition-transform duration-700"
                 />
@@ -589,9 +589,9 @@ const BlogsDetails = () => {
                     className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden cursor-pointer border border-gray-100 hover:border-transparent"
                   >
                     <div className="h-40 overflow-hidden">
-                      {blog.image ? (
-                        <img
-                          src={getUploadUrl(blog.image)}
+                      {getUploadUrl(blog.imageUrl || blog.image) ? (
+                        <ImageWithFallback
+                          src={getUploadUrl(blog.imageUrl || blog.image)}
                           alt={blog.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />

@@ -14,6 +14,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import ImageWithFallback from "../../../components/common/ImageWithFallback";
 
 const CreateCoursePage = () => {
   const dispatch = useDispatch();
@@ -316,7 +317,7 @@ const CreateCoursePage = () => {
                     Preview
                   </div>
                   <div className="relative rounded-xl overflow-hidden border border-gray-200">
-                    <img
+                    <ImageWithFallback
                       src={preview}
                       alt="Course thumbnail preview"
                       className="w-full h-48 object-cover"

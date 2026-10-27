@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getUploadUrl } from "../../../utils/constants";
+import ImageWithFallback from "../../../components/common/ImageWithFallback";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlogs } from "../../../features/admin/blogSlice";
 import { useNavigate } from "react-router-dom";
@@ -299,10 +300,10 @@ const ReadAllBlogs = () => {
                     viewMode === "list" ? "md:w-1/3 h-64 md:h-auto" : "h-56"
                   } relative overflow-hidden`}
                 >
-                  {blog.image ? (
+                  {getUploadUrl(blog.imageUrl || blog.image) ? (
                     <>
-                      <img
-                        src={getUploadUrl(blog.image)}
+                      <ImageWithFallback
+                        src={getUploadUrl(blog.imageUrl || blog.image)}
                         alt={blog.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       />

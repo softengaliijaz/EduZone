@@ -21,7 +21,7 @@ const StatisticPartners = () => {
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Growing Together,{" "}
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="home-gradient-text">
               Achieving More
             </span>
           </h2>
@@ -46,7 +46,7 @@ const StatisticPartners = () => {
                 <div className="text-5xl mb-4 transform group-hover:scale-110 transition-transform duration-300">
                   {stat.icon}
                 </div>
-                <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                <div className="home-gradient-text text-5xl font-bold mb-2">
                   {stat.value}
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -66,7 +66,7 @@ const StatisticPartners = () => {
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold text-gray-900 mb-4">
               Trusted by{" "}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="home-gradient-text">
                 Industry Leaders
               </span>
             </h3>
@@ -81,7 +81,7 @@ const StatisticPartners = () => {
             {statisticPartnersData.map((partner, index) => (
               <div
                 key={index}
-                className="group relative bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 border border-gray-200 hover:border-transparent transition-all duration-500 hover:shadow-2xl"
+                className="home-stat-partner-card group relative rounded-2xl p-6 border transition-all duration-500 hover:border-transparent hover:shadow-2xl"
               >
                 {/* Gradient Overlay */}
                 <div

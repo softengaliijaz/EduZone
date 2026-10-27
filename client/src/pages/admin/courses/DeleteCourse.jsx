@@ -20,6 +20,7 @@ import {
 import { toast } from "react-hot-toast";
 import useConfirmDialog from "../../../components/common/useConfirmDialog";
 import { getUploadUrl } from "../../../utils/constants";
+import ImageWithFallback from "../../../components/common/ImageWithFallback";
 
 const DeleteCoursePage = () => {
   const dispatch = useDispatch();
@@ -70,8 +71,7 @@ const DeleteCoursePage = () => {
   };
 
   const getImageUrl = (course) =>
-    course.imageUrl ||
-    getUploadUrl(course.image);
+    getUploadUrl(course.imageUrl || course.image);
 
   if (courseLoader) {
     return <Loader title="Loading courses..." />;
@@ -208,8 +208,8 @@ const DeleteCoursePage = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex-shrink-0">
-                            {course.image ? (
-                              <img
+                            {getImageUrl(course) ? (
+                              <ImageWithFallback
                                 src={getImageUrl(course)}
                                 alt={course.title}
                                 className="w-12 h-12 rounded-lg object-cover"
@@ -280,8 +280,8 @@ const DeleteCoursePage = () => {
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0">
-                      {course.image ? (
-                        <img
+                      {getImageUrl(course) ? (
+                        <ImageWithFallback
                           src={getImageUrl(course)}
                           alt={course.title}
                           className="w-16 h-16 rounded-lg object-cover"
@@ -361,4 +361,3 @@ const DeleteCoursePage = () => {
 };
 
 export default DeleteCoursePage;
-

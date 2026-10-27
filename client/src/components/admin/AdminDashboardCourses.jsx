@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, Plus, RotateCw } from "lucide-react";
 import { getUploadUrl } from "../../utils/constants";
+import ImageWithFallback from "../common/ImageWithFallback";
 
 const AdminDashboardCourses = ({ courses = [], loading, error, onRetry, workspace = "admin" }) => {
   const basePath = workspace === "instructor" ? "/instructor" : "/admin";
@@ -32,11 +33,11 @@ const AdminDashboardCourses = ({ courses = [], loading, error, onRetry, workspac
     ) : (
       <div className="admin-list">
         {courses.slice(0, 5).map((course) => {
-          const imageUrl = course.imageUrl || getUploadUrl(course.image);
+          const imageUrl = getUploadUrl(course.imageUrl || course.image);
           return (
             <article className="admin-list-row admin-course-row" key={course._id}>
               <span className="admin-course-row__image">
-                {imageUrl ? <img src={imageUrl} alt="" loading="lazy" /> : <BookOpen size={18} aria-hidden="true" />}
+                {imageUrl ? <ImageWithFallback src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" /> : <BookOpen size={18} aria-hidden="true" />}
               </span>
               <div className="admin-list-row__main">
                 <strong>{course.title || "Untitled course"}</strong>

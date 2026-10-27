@@ -6,14 +6,11 @@ import {
   ChevronDown,
   LogOut,
   Menu,
-  Moon,
   Settings,
-  Sun,
   X,
 } from "lucide-react";
 import { logoutUser } from "../../features/auth/authSlice";
 import useConfirmDialog from "../common/useConfirmDialog";
-import { useTheme } from "../../contexts/ThemeContext";
 import {
   getSettingsPath,
   getWorkspaceHome,
@@ -33,7 +30,6 @@ const HeaderNav = ({ workspace = false, onMenuToggle, menuOpen = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
-  const { theme, toggleTheme } = useTheme();
   const confirm = useConfirmDialog();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [publicMenuOpen, setPublicMenuOpen] = useState(false);
@@ -167,15 +163,6 @@ const HeaderNav = ({ workspace = false, onMenuToggle, menuOpen = false }) => {
             {publicMenuOpen ? <X size={19} /> : <Menu size={19} />}
           </button>
         )}
-        <button
-          type="button"
-          className="icon-button"
-          onClick={toggleTheme}
-          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-          title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-        >
-          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
         {user ? (
           <div className="user-menu">
             <button

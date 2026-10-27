@@ -11,7 +11,7 @@ const TrustedBySection = () => {
         </span>
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
           Trusted by{" "}
-          <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <span className="home-gradient-text">
             Visionary Organizations
           </span>
         </h1>
@@ -29,9 +29,7 @@ const TrustedBySection = () => {
             className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100"
           >
             {/* Decorative Corner Accent */}
-            <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden rounded-tr-2xl">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-50 to-purple-50 transform rotate-45 translate-x-12 -translate-y-12"></div>
-            </div>
+            <div className="home-partner-card__corner" aria-hidden="true" />
 
             {/* Organization Initial Badge */}
             <div className="absolute -top-5 left-8">
@@ -76,19 +74,19 @@ const TrustedBySection = () => {
       {/* Stats Section */}
       <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl w-full">
         <div className="text-center p-8 bg-white rounded-2xl shadow-lg">
-          <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+          <div className="home-gradient-text text-5xl font-bold mb-4">
             50+
           </div>
           <p className="text-gray-600 font-medium">Active Partnerships</p>
         </div>
         <div className="text-center p-8 bg-white rounded-2xl shadow-lg">
-          <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+          <div className="home-gradient-text text-5xl font-bold mb-4">
             15+
           </div>
           <p className="text-gray-600 font-medium">Countries Reached</p>
         </div>
         <div className="text-center p-8 bg-white rounded-2xl shadow-lg">
-          <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+          <div className="home-gradient-text text-5xl font-bold mb-4">
             100K+
           </div>
           <p className="text-gray-600 font-medium">Learners Impacted</p>
