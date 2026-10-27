@@ -28,8 +28,7 @@ const roleSettings = {
   instructor: {
     label: "Instructor",
     description: "Keep your instructor profile current for your learners.",
-    bioPlaceholder:
-      "Share your teaching background and areas of expertise.",
+    bioPlaceholder: "Share your teaching background and areas of expertise.",
     Icon: UserRound,
   },
   student: {
