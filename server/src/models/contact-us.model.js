@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const ContactUsSchema = mongoose.Schema({
+const ContactUsSchema = new mongoose.Schema({
   fullname: {
     type: String,
     required: true,
@@ -18,6 +18,6 @@ const ContactUsSchema = mongoose.Schema({
     type: String,
     required: true,
   },
-});
+}, { timestamps: true });
 
 export default mongoose.model("ContactUs", ContactUsSchema);

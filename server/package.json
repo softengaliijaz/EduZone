@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test",
     "build": "echo \"No build step defined\""
   },
   "keywords": [
@@ -18,8 +18,10 @@
   "author": "Muhammad Ali",
   "license": "ISC",
   "description": "Backend server for EduZone platform using Express and MongoDB",
+  "engines": {
+    "node": ">=20 <25"
+  },
   "dependencies": {
-    "@upstash/redis": "^1.35.1",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -29,7 +31,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.2",
     "multer": "^2.0.1",
-    "nodemailer": "^7.0.3"
+    "nodemailer": "^10.2.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

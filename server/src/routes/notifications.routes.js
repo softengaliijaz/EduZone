@@ -4,11 +4,11 @@ import {
   getNotificationsByUser,
   markNotificationAsRead,
 } from "../controllers/notifications.controller.js";
-import { checkAuth } from "../middlewares/auth_middleware.js";
+import { checkAuth, authorizeRoles } from "../middlewares/auth_middleware.js";
 
 const router = express.Router();
 
-router.post("/", checkAuth, createNotification);
+router.post("/", checkAuth, authorizeRoles("admin"), createNotification);
 router.get("/me", checkAuth, (req, _res, next) => {
   req.params.userId = req.user._id.toString();
   next();

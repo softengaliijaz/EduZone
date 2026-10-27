@@ -39,6 +39,13 @@ const env = {
       process.env.NODE_ENV === "production"
     );
   },
+  get hasDistinctTokenSecrets() {
+    return (
+      Boolean(this.accessTokenSecret) &&
+      Boolean(this.refreshTokenSecret) &&
+      this.accessTokenSecret !== this.refreshTokenSecret
+    );
+  },
 };
 
 export default env;

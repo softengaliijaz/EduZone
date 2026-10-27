@@ -2,11 +2,11 @@ import mongoose from "mongoose";
 import EduZoneBenefit from "../models/edu-benefits.model.js";
 import { catchAsyncHandler } from "../middlewares/error_middleware.js";
 
-export const handleBenefitByGetAll = catchAsyncHandler(async (req, res) => {
+export const handleBenefitByGetAll = catchAsyncHandler(async (_req, res) => {
   try {
     const data = await EduZoneBenefit.find({});
     if (!data.length) {
-      return res.status(404).json({ message: "No data found.", data: null });
+      return res.status(200).json({ message: "No benefits found.", data: [] });
     }
     return res
       .status(200)

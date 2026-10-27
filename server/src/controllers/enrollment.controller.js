@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import EnrollmentCourse from "../models/enrollment.model.js";
+import Course from "../models/course.model.js";
+import User from "../models/auth.model.js";
 import { catchAsyncHandler } from "../middlewares/error_middleware.js";
 import Notification from "../models/notifications.model.js";
 
@@ -9,10 +11,7 @@ export const enrollInCourse = catchAsyncHandler(async (req, res) => {
     const requesterId = req.user?._id?.toString();
     const requesterRole = req.user?.user_type;
 
-    const userId =
-      requesterRole === "admin" || requesterRole === "instructor"
-        ? userIdFromBody || requesterId
-        : requesterId;
+    const userId = requesterRole === "admin" ? userIdFromBody || requesterId : requesterId;
 
     if (!userId || !courseId) {
       return res
@@ -28,6 +27,21 @@ export const enrollInCourse = catchAsyncHandler(async (req, res) => {
       return res.status(400).json({ error: "Invalid course ID." });
     }
 
+    if (requesterRole !== "student" && requesterRole !== "admin") {
+      return res.status(403).json({ error: "Only students can enroll in courses." });
+    }
+
+    const [student, course] = await Promise.all([
+      User.findById(userId).select("user_type"),
+      Course.findById(courseId).select("_id"),
+    ]);
+    if (!student || student.user_type !== "student") {
+      return res.status(400).json({ error: "Enrollment requires a valid student account." });
+    }
+    if (!course) {
+      return res.status(404).json({ error: "Course not found." });
+    }
+
     const existing = await EnrollmentCourse.findOne({ userId, courseId });
 
     if (existing) {
@@ -36,7 +50,15 @@ export const enrollInCourse = catchAsyncHandler(async (req, res) => {
       });
     }
 
-    const enrollment = await EnrollmentCourse.create({ userId, courseId });
+    let enrollment;
+    try {
+      enrollment = await EnrollmentCourse.create({ userId, courseId });
+    } catch (error) {
+      if (error.code === 11000) {
+        return res.status(409).json({ message: "User already enrolled in this course" });
+      }
+      throw error;
+    }
 
     const populatedEnrollment = await EnrollmentCourse.findById(enrollment._id)
       .populate("courseId", "title description duration level")
@@ -56,9 +78,12 @@ export const enrollInCourse = catchAsyncHandler(async (req, res) => {
       link: `/courses/${courseId}`,
     });
 
+    const studentCount = await EnrollmentCourse.countDocuments({ courseId });
+
     return res.status(201).json({
       message: `Enrollment successful in course: ${populatedEnrollment.courseId.title}`,
       data: populatedEnrollment,
+      studentCount,
     });
   } catch (error) {
     console.error("Error enrolling in course:", error);
@@ -169,7 +194,7 @@ export const getAllEnrolledStudents = catchAsyncHandler(async (req, res) => {
 export const updateCourseEnrollment = catchAsyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
-    const { progress, completed } = req.body;
+    const { progress } = req.body;
     const enrollmentToUpdate = await EnrollmentCourse.findById(id).populate(
       "courseId",
       "courseCreatedBy title",
@@ -194,16 +219,17 @@ export const updateCourseEnrollment = catchAsyncHandler(async (req, res) => {
     const safeProgress =
       progress === undefined ? enrollmentToUpdate.progress : Number(progress);
 
-    const normalizedProgress = Number.isFinite(safeProgress)
-      ? Math.max(0, Math.min(100, safeProgress))
-      : enrollmentToUpdate.progress;
+    if (!Number.isFinite(safeProgress) || safeProgress < 0 || safeProgress > 100) {
+      return res.status(400).json({ error: "Progress must be between 0 and 100." });
+    }
+
+    const normalizedProgress = safeProgress;
 
     const enrollment = await EnrollmentCourse.findByIdAndUpdate(
       id,
       {
         progress: normalizedProgress,
-        completed:
-          completed !== undefined ? Boolean(completed) : normalizedProgress >= 100,
+        completed: normalizedProgress >= 100,
       },
       { new: true },
     )

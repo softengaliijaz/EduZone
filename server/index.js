@@ -9,6 +9,7 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 dotenv.config();
 
 import express from "express";
+import mongoose from "mongoose";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import connectToDatabase from "./src/config/server.js";
@@ -23,6 +24,18 @@ import {
 
 const app = express();
 const PORT = env.port;
+
+if (
+  env.nodeEnv === "production" &&
+  (!env.dbUrl ||
+    !env.hasDistinctTokenSecrets ||
+    !process.env.CLIENT_URL ||
+    !process.env.BASE_URL)
+) {
+  throw new Error(
+    "Production requires DB_CONFIGURATION, distinct access/refresh token secrets, CLIENT_URL, and BASE_URL.",
+  );
+}
 
 const clientUrl = env.clientUrl;
 
@@ -85,6 +98,14 @@ app.get("/", (req, res) => {
   });
 });
 
+app.get("/health", (_req, res) => {
+  const databaseConnected = mongoose.connection.readyState === 1;
+  return res.status(databaseConnected ? 200 : 503).json({
+    status: databaseConnected ? "ok" : "unavailable",
+    database: databaseConnected ? "connected" : "disconnected",
+  });
+});
+
 /* ===================== ROUTES ===================== */
 registeredRouters(app);
 
@@ -92,8 +113,8 @@ registeredRouters(app);
 app.use(globalErrorHandler);
 
 /* ===================== DB + SERVER ===================== */
-connectToDatabase(env.dbUrl);
+await connectToDatabase(env.dbUrl);
 
 app.listen(PORT, () => {
-  console.log(`Server running on port: http://localhost:${PORT}`);
+  console.log(`Server listening on port ${PORT}.`);
 });

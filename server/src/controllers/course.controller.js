@@ -1,10 +1,12 @@
 import mongoose from "mongoose";
 import Course from "../models/course.model.js";
+import EnrollmentCourse from "../models/enrollment.model.js";
 import { catchAsyncHandler } from "../middlewares/error_middleware.js";
 import Notification from "../models/notifications.model.js";
 import env from "../config/env.js";
 
 const uploadsBaseUrl = `${env.appUrl}/uploads`;
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // 1. GET ALL COURSES
 // 1. GET ALL COURSES (With Search & Filter)
@@ -22,7 +24,10 @@ export const getAllCourses = catchAsyncHandler(async (req, res) => {
   const query = {};
 
   if (search) {
-    query.title = { $regex: search, $options: "i" };
+    const normalizedSearch = String(search).trim().slice(0, 100);
+    if (normalizedSearch) {
+      query.title = { $regex: escapeRegex(normalizedSearch), $options: "i" };
+    }
   }
 
   if (category && category !== "all") {
@@ -35,7 +40,9 @@ export const getAllCourses = catchAsyncHandler(async (req, res) => {
 
   const parsedPage = Math.max(Number(page) || 1, 1);
   const parsedLimit = Math.min(Math.max(Number(limit) || 12, 1), 100);
-  const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+  const allowedSortFields = ["createdAt", "title", "rating", "students"];
+  const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "createdAt";
+  const sort = { [safeSortBy]: sortOrder === "asc" ? 1 : -1 };
 
   const [courses, total] = await Promise.all([
     Course.find(query)
@@ -46,8 +53,18 @@ export const getAllCourses = catchAsyncHandler(async (req, res) => {
     Course.countDocuments(query),
   ]);
 
+  const courseIds = courses.map((course) => course._id);
+  const enrollmentCounts = await EnrollmentCourse.aggregate([
+    { $match: { courseId: { $in: courseIds } } },
+    { $group: { _id: "$courseId", count: { $sum: 1 } } },
+  ]);
+  const countByCourseId = new Map(
+    enrollmentCounts.map(({ _id, count }) => [_id.toString(), count]),
+  );
+
   const payload = courses.map((course) => ({
     ...course.toObject(),
+    students: countByCourseId.get(course._id.toString()) || 0,
     imageUrl: course.image ? `${uploadsBaseUrl}/${course.image}` : null,
   }));
 
@@ -83,8 +100,11 @@ export const getCourseById = catchAsyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Course not found" });
   }
 
+  const students = await EnrollmentCourse.countDocuments({ courseId: course._id });
+
   const courseData = {
     ...course.toObject(),
+    students,
     imageUrl: course.image
       ? `${uploadsBaseUrl}/${course.image}`
       : null,
@@ -104,9 +124,6 @@ export const createCourse = catchAsyncHandler(async (req, res) => {
     category,
     duration,
     level,
-    views,
-    students,
-    rating,
   } = req.body;
 
   const courseCreatedBy = req.user?._id;
@@ -121,9 +138,6 @@ export const createCourse = catchAsyncHandler(async (req, res) => {
     title: title.trim(),
     description: description.trim(),
     category,
-    views,
-    students,
-    rating,
     duration,
     level,
     courseCreatedBy,
@@ -175,7 +189,14 @@ export const updateCourseById = catchAsyncHandler(async (req, res) => {
       .json({ message: "Forbidden: You can only edit your own courses." });
   }
 
-  const updateData = { ...req.body };
+  const updateData = {};
+  for (const field of ["title", "description", "category", "duration", "level"]) {
+    if (req.body[field] !== undefined) {
+      updateData[field] = typeof req.body[field] === "string"
+        ? req.body[field].trim()
+        : req.body[field];
+    }
+  }
   if (req.file?.filename) {
     updateData.image = req.file.filename;
   }

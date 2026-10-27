@@ -157,6 +157,9 @@ export const handleUpdateUserById = catchAsyncHandler(async (req, res) => {
   try {
     const id = req.params.id;
     const updateData = { ...req.body };
+    if (req.file?.filename) {
+      updateData.profile_picture_url = req.file.filename;
+    }
     const currentUser = req.user;
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {

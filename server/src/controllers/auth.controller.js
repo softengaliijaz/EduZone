@@ -52,7 +52,9 @@ export const registerUser = catchAsyncHandler(async (req, res) => {
     });
   }
 
-  const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+  const existingUser = await User.findOne({
+    email: email.toLowerCase().trim(),
+  });
   if (existingUser) {
     return sendError(res, {
       statusCode: 409,
@@ -98,7 +100,6 @@ export const registerUser = catchAsyncHandler(async (req, res) => {
     data: {
       user: userData,
       accessToken,
-      refreshToken,
     },
   });
 });
@@ -152,7 +153,6 @@ export const loginUser = catchAsyncHandler(async (req, res) => {
     data: {
       user: userData,
       accessToken,
-      refreshToken,
     },
   });
 });
@@ -179,7 +179,9 @@ export const refreshAccessToken = catchAsyncHandler(async (req, res) => {
     });
   }
 
-  const user = await User.findById(decoded.userId).select("-password +refresh_token_hash");
+  const user = await User.findById(decoded.userId).select(
+    "-password +refresh_token_hash",
+  );
   if (!user || !user.refresh_token_hash) {
     clearAuthCookies(res);
     return sendError(res, {
@@ -207,7 +209,6 @@ export const refreshAccessToken = catchAsyncHandler(async (req, res) => {
     message: "Token refreshed successfully.",
     data: {
       accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
       user: formatUserResponse(user),
     },
   });

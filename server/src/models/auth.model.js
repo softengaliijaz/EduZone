@@ -5,42 +5,50 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
+      required: true,
       trim: true,
+      maxlength: 100,
     },
+
     email: {
       type: String,
+      required: true,
       unique: true,
-      required: false,
       lowercase: true,
       trim: true,
+      maxlength: 254,
     },
+
     password: {
       type: String,
       required: true,
       select: false,
     },
+
     refresh_token_hash: {
       type: String,
       default: null,
       select: false,
     },
+
     user_type: {
       type: String,
       enum: ["student", "instructor", "admin"],
       default: "student",
+      required: true,
     },
+
     profile_picture_url: {
       type: String,
       default: null,
+      trim: true,
     },
+
     bio: {
       type: String,
-      default: () => getRandomBio(),
-      maxlength: 1000,
-    },
-    registration_date: {
-      type: Date,
-      default: Date.now,
+      default: getRandomBio,
+      maxlength: 300,
+      trim: true,
     },
   },
   {

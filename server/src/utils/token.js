@@ -8,6 +8,11 @@ const assertSecrets = () => {
       "Token secret missing. Set ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET.",
     );
   }
+  if (env.nodeEnv === "production" && !env.hasDistinctTokenSecrets) {
+    throw new Error(
+      "Production requires distinct ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET values.",
+    );
+  }
 };
 
 export const buildTokenPayload = (user) => ({

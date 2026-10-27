@@ -34,7 +34,12 @@ router.post(
   createUser,
 );
 
-router.put("/:id", checkAuth, handleUpdateUserById);
+router.put(
+  "/:id",
+  checkAuth,
+  upload.single("profile_picture_url"),
+  handleUpdateUserById,
+);
 
 router.delete("/:id", checkAuth, authorizeRoles("admin"), handleDeleteUserById);
 

@@ -36,16 +36,16 @@ router.post(
   "/create-course",
   checkAuth,
   authorizeRoles("admin", "instructor"),
-  validateRequest(validateCreateCourseBody),
   upload.single("image"),
+  validateRequest(validateCreateCourseBody),
   createCourse,
 );
 router.post(
   "/",
   checkAuth,
   authorizeRoles("admin", "instructor"),
-  validateRequest(validateCreateCourseBody),
   upload.single("image"),
+  validateRequest(validateCreateCourseBody),
   createCourse,
 );
 router.put(

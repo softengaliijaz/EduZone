@@ -4,10 +4,7 @@ import Todo from "../models/todo.model.js";
 import Notification from "../models/notifications.model.js";
 
 export const getTodos = catchAsyncHandler(async (req, res) => {
-  const todos = await Todo.find({}).populate("user", "name email");
-  if (!todos || todos.length === 0) {
-    return res.status(404).json({ message: "No todos found", data: [] });
-  }
+  const todos = await Todo.find({ user: req.user._id });
   return res.status(200).json({ message: "Todos fetched", data: todos });
 });
 
@@ -42,13 +39,28 @@ export const updateTodo = catchAsyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Invalid todo ID" });
   }
 
-  const updated = await Todo.findByIdAndUpdate(id, req.body, {
-    new: true,
-  });
+  const todo = await Todo.findById(id);
 
-  if (!updated) {
+  if (!todo) {
     return res.status(404).json({ message: "Todo not found" });
   }
+  if (todo.user.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ message: "You cannot update another user's todo." });
+  }
+
+  if (req.body.text !== undefined) {
+    if (typeof req.body.text !== "string" || !req.body.text.trim()) {
+      return res.status(400).json({ message: "Todo text cannot be empty." });
+    }
+    todo.text = req.body.text.trim();
+  }
+  if (req.body.completed !== undefined) {
+    if (typeof req.body.completed !== "boolean") {
+      return res.status(400).json({ message: "Completed must be a boolean." });
+    }
+    todo.completed = req.body.completed;
+  }
+  const updated = await todo.save();
 
   await Notification.create({
     userId: updated.user,
@@ -69,11 +81,15 @@ export const deleteTodo = catchAsyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Invalid todo ID" });
   }
 
-  const deleted = await Todo.findByIdAndDelete(id);
+  const todo = await Todo.findById(id);
 
-  if (!deleted) {
+  if (!todo) {
     return res.status(404).json({ message: "Todo not found" });
   }
+  if (todo.user.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ message: "You cannot delete another user's todo." });
+  }
+  const deleted = await Todo.findByIdAndDelete(id);
 
   await Notification.create({
     userId: deleted.user,

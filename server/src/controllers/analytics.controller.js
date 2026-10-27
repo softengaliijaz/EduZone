@@ -30,7 +30,10 @@ const buildEmptyMonths = (count = 6) => {
   });
 };
 
-const mapMonthlyCounts = (items = [], dateSelector = (item) => item.createdAt) => {
+const mapMonthlyCounts = (
+  items = [],
+  dateSelector = (item) => item.createdAt,
+) => {
   const months = buildEmptyMonths(6);
   const map = new Map(months.map((month) => [month.key, { ...month }]));
 
@@ -46,16 +49,23 @@ const mapMonthlyCounts = (items = [], dateSelector = (item) => item.createdAt) =
 };
 
 export const getAdminAnalytics = catchAsyncHandler(async (_req, res) => {
-  const [users, courses, blogs, enrollments, lessons, assignments, notifications] =
-    await Promise.all([
-      User.find({}, "user_type createdAt"),
-      Course.find({}, "students rating createdAt"),
-      Blog.find({}, "createdAt"),
-      EnrollmentCourse.find({}, "progress completed createdAt"),
-      Lesson.find({}, "createdAt"),
-      Assignment.find({}, "createdAt"),
-      Notification.find({}, "createdAt"),
-    ]);
+  const [
+    users,
+    courses,
+    blogs,
+    enrollments,
+    lessons,
+    assignments,
+    notifications,
+  ] = await Promise.all([
+    User.find({}, "user_type createdAt"),
+    Course.find({}, "students rating createdAt"),
+    Blog.find({}, "createdAt"),
+    EnrollmentCourse.find({}, "progress completed createdAt"),
+    Lesson.find({}, "createdAt"),
+    Assignment.find({}, "createdAt"),
+    Notification.find({}, "createdAt"),
+  ]);
 
   const counts = {
     students: users.filter((user) => user.user_type === "student").length,
@@ -163,7 +173,8 @@ export const getInstructorAnalytics = catchAsyncHandler(async (req, res) => {
         completionRate:
           enrollments.length > 0
             ? Math.round(
-                (enrollments.filter((enrollment) => enrollment.completed).length /
+                (enrollments.filter((enrollment) => enrollment.completed)
+                  .length /
                   enrollments.length) *
                   100,
               )

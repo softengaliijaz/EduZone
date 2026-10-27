@@ -50,10 +50,12 @@ import todoRouter from "./todo.routes.js";
 // ==========================
 import notificationRouter from "./notifications.routes.js";
 import analyticsRouter from "./analytics.routes.js";
+import adminRouter from "./admin.routes.js";
 
 const registeredRouters = (app) => {
   // User
   app.use("/api/users", userRouter);
+  app.use("/api/admin", adminRouter);
   app.use("/api/attendance", attendanceRouter);
 
   // Auth

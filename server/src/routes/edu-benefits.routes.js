@@ -12,7 +12,8 @@ import {
   handleDeleteBenefitById,
 } from "../controllers/edu-benefits.controller.js";
 
-router.get("/all", checkAuth, handleBenefitByGetAll);
+// Benefits are public marketing content; only mutations need authentication.
+router.get("/all", handleBenefitByGetAll);
 
 router.get("/:id", checkAuth, authorizeRoles("admin"), handleBenefitById);
 

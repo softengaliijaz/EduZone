@@ -1,8 +1,13 @@
 import express from "express";
 const router = express.Router();
 import { sendContactMessage } from "../controllers/contact-us.controller.js";
-import { checkAuth } from "../middlewares/auth_middleware.js";
+import { createRateLimiter } from "../middlewares/security_middleware.js";
 
-router.post("/send-message", checkAuth, sendContactMessage);
+// Public forms need a tighter limit than ordinary API reads.
+router.post(
+  "/send-message",
+  createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10 }),
+  sendContactMessage,
+);
 
 export default router;
