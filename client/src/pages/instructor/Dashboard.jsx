@@ -5,7 +5,7 @@ import { fetchInstructorAnalytics } from "../../features/analytics/analyticsSlic
 import UserProfileCard from "../../components/admin/UserProfileCard";
 import AdminDashboardStatsCards from "../../components/admin/AdminStatsCards";
 import AdminCoursesGrid from "../../components/admin/AdminDashboardCourses";
-import { DashboardCharts } from "../../components/admin/DashboardCharts";
+import DeferredDashboardCharts from "../../components/admin/DeferredDashboardCharts";
 
 const InstructorDashboard = () => {
   const dispatch = useDispatch();
@@ -42,7 +42,7 @@ const InstructorDashboard = () => {
             blogsCount={counts.lessons || 0}
             adminsCount={counts.assignments || 0}
           />
-          <DashboardCharts
+          <DeferredDashboardCharts
             userTrend={trends.courses || []}
             enrollmentTrend={trends.enrollments || []}
           />

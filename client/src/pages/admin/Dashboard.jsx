@@ -8,7 +8,7 @@ import { fetchAdminAnalytics } from "../../features/analytics/analyticsSlice";
 import AdminDashboardStatsCards from "../../components/admin/AdminStatsCards";
 import AdminDashboardCourses from "../../components/admin/AdminDashboardCourses";
 import AdminDashboardBlogs from "../../components/admin/AdminDashboardBlogs";
-import { DashboardCharts } from "../../components/admin/DashboardCharts";
+import DeferredDashboardCharts from "../../components/admin/DeferredDashboardCharts";
 
 const quickLinks = [
   { label: "Manage courses", to: "/admin/courses-management/get-all-courses", icon: BookOpen },
@@ -68,7 +68,10 @@ const AdminDashboard = () => {
 
       {analyticsError && !analytics && <p className="admin-dashboard__notice" role="status">Analytics are temporarily unavailable. Counts will appear when the analytics service responds.</p>}
 
-      <DashboardCharts userTrend={trends.users || []} enrollmentTrend={trends.enrollments || []} />
+      <DeferredDashboardCharts
+        userTrend={trends.users || []}
+        enrollmentTrend={trends.enrollments || []}
+      />
 
       <div className="admin-dashboard__content-grid">
         <AdminDashboardCourses
