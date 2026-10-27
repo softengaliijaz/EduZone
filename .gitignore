@@ -1,0 +1,15 @@
+# Local environment files and secrets
+.env
+.env.*
+!.env.example
+!.env-example
+
+# Dependencies and generated output
+node_modules/
+client/dist/
+client/coverage/
+server/coverage/
+server/uploads/*
+!server/uploads/.gitkeep
+.ui-review/
+*.log
