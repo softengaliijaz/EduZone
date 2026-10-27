@@ -13,7 +13,7 @@ const env = {
     return toNumber(process.env.PORT, 5000);
   },
   get dbUrl() {
-    return process.env.DB_CONFIGURATION || process.env.MONGO_URI || "";
+    return process.env.DB_CONFIGURATION || "";
   },
   get appUrl() {
     return trimSlashes(process.env.BASE_URL || "http://localhost:5000");
